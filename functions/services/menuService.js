@@ -1,3 +1,7 @@
+// menuService.js
+// Handles standard menu extraction, parsing, and storage for the Menu Parser backend.
+// Contains business logic for processing uploaded menus using OCR, OpenAI, and Firestore.
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { uploadToStorage, saveToFirestore } = require('../repositories/storageRepository');
@@ -15,8 +19,15 @@ const OPENAI_API_KEY = functions.config().openai.key;
 const openai = new OpenAIApi(new Configuration({ apiKey: OPENAI_API_KEY }));
 const SUPPORTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.docx', '.xlsx'];
 
+/**
+ * Extracts text from a file using Vision API, Mammoth, or XLSX depending on the file extension.
+ * @param {string} filePath - Path to the file.
+ * @param {string} extension - File extension.
+ * @returns {Promise<string>} Extracted text.
+ */
 async function extractTextFromFile(filePath, extension) {
   if (['.jpg', '.jpeg', '.png', '.pdf'].includes(extension)) {
+    // Use Google Vision API for image and PDF files
     const [result] = await visionClient.documentTextDetection(filePath);
     const pages = result.fullTextAnnotation?.pages || [];
     let allWords = [];
@@ -32,6 +43,7 @@ async function extractTextFromFile(filePath, extension) {
         });
       });
     });
+    // Group words into rows based on Y proximity
     const rows = [];
     const yThreshold = 15;
     allWords.forEach(word => {
@@ -43,6 +55,7 @@ async function extractTextFromFile(filePath, extension) {
         rows.push({ y: word.y, words: [word] });
       }
     });
+    // Sort and merge lines
     const processedLines = rows
       .map(row => {
         const sortedWords = row.words.sort((a, b) => a.x - b.x);
@@ -56,13 +69,15 @@ async function extractTextFromFile(filePath, extension) {
       })
       .sort((a, b) => a.y - b.y);
     const combinedText = processedLines.join('\n');
-    return mergeMultiLineItems(combinedText);
+    return mergePriceLinesWithItems(combinedText);
   }
   if (extension === '.docx') {
+    // Use Mammoth for DOCX files
     const data = await mammoth.extractRawText({ path: filePath });
     return data.value;
   }
   if (extension === '.xlsx') {
+    // Use XLSX for Excel files
     const workbook = xlsx.readFile(filePath);
     let text = '';
     workbook.SheetNames.forEach(sheet => {
@@ -73,6 +88,11 @@ async function extractTextFromFile(filePath, extension) {
   return '';
 }
 
+/**
+ * Extracts structured menu JSON from raw text using OpenAI.
+ * @param {string} rawText - The raw text to parse.
+ * @returns {Promise<Object>} Parsed menu JSON.
+ */
 async function extractMenuJson(rawText) {
   // Use a prompt template or inline prompt as needed
   const prompt = `You are a menu parser.\nExtract structured restaurant menu data from the following text and return valid, clean JSON.\nText:\n"""\n${rawText}\n"""`;
@@ -93,6 +113,10 @@ async function extractMenuJson(rawText) {
   throw new Error('No JSON found in OpenAI response');
 }
 
+/**
+ * Cloud Function: processMenuUpload
+ * Handles file upload, text extraction, menu parsing, and storage for standard menus.
+ */
 const processMenuUpload = functions
   .region('us-central1')
   .runWith({ memory: '1GB', timeoutSeconds: 300 })
@@ -102,6 +126,7 @@ const processMenuUpload = functions
     const filePath = object.name;
     const fileName = path.basename(filePath);
     const extension = path.extname(fileName).toLowerCase();
+    // Only process files in 'menus/' with supported extensions
     if (!filePath.startsWith('menus/') || !SUPPORTED_EXTENSIONS.includes(extension)) {
       return;
     }
@@ -128,11 +153,13 @@ const processMenuUpload = functions
       fs.unlinkSync(tempFilePath);
       return;
     }
+    // Save JSON to Storage
     const jsonFileName = fileName.replace(extension, '.json');
     const parsedPath = `parsed/${jsonFileName}`;
     const tempJsonPath = path.join(os.tmpdir(), jsonFileName);
     fs.writeFileSync(tempJsonPath, JSON.stringify(menuJson, null, 2));
     await uploadToStorage(fileBucket, parsedPath, tempJsonPath, 'application/json');
+    // Save JSON to Firestore
     const docId = path.basename(fileName, extension);
     const docData = {
       ...menuJson,
@@ -143,6 +170,7 @@ const processMenuUpload = functions
       docData.debugRawTextPath = rawTextPath;
     }
     await saveToFirestore('menus', docId, docData);
+    // Cleanup temp files
     fs.unlinkSync(tempFilePath);
     fs.unlinkSync(tempJsonPath);
   });

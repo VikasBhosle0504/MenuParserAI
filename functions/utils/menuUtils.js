@@ -1,3 +1,12 @@
+// menuUtils.js
+// Contains pure helper functions for menu text processing and formatting in the Menu Parser backend.
+// Used by services for text normalization, merging, and chunking.
+
+/**
+ * Inserts column break markers every 40 lines in the text.
+ * @param {string} text - The input text.
+ * @returns {string} The text with column breaks inserted.
+ */
 function injectColumnBreaks(text) {
   const lines = text.split('\n');
   for (let i = 40; i < lines.length; i += 40) {
@@ -6,6 +15,11 @@ function injectColumnBreaks(text) {
   return lines.join('\n');
 }
 
+/**
+ * Normalizes OCR text by fixing spacing and line breaks.
+ * @param {string} text - The OCR text to normalize.
+ * @returns {string} The normalized text.
+ */
 function normalizeOCR(text) {
   return text
     .replace(/([A-Z])\s{2,}([A-Z])/g, '$1\n$2')
@@ -14,6 +28,11 @@ function normalizeOCR(text) {
     .trim();
 }
 
+/**
+ * Merges price lines with their corresponding menu items in the text.
+ * @param {string} text - The input text.
+ * @returns {string} The merged text.
+ */
 function mergePriceLinesWithItems(text) {
   const lines = text.split('\n');
   const merged = [];

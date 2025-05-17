@@ -1,3 +1,7 @@
+// login.js
+// Handles user login for the Menu Parser web app using Firebase Authentication.
+// Reads credentials from the login form and redirects to the main app page on success.
+
 // Remove inline firebaseConfig and use shared config
 // const firebaseConfig = { ... } (remove this)
 if (!firebase.apps.length) {

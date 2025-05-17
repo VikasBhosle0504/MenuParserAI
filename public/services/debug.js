@@ -1,3 +1,7 @@
+// debug.js
+// Displays and manages debug raw text files uploaded to Firebase Storage for the Menu Parser app.
+// Handles user authentication, file listing, and viewing raw OCR text.
+
 // Remove inline firebaseConfig and use shared config
 // const firebaseConfig = { ... } (remove this)
 if (!firebase.apps.length) {

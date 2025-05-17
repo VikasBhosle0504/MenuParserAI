@@ -1,3 +1,7 @@
+// app.js
+// Handles the main menu upload, display, and user session logic for the Menu Parser web app.
+// Uses Firebase for authentication, storage, and Firestore database.
+
 // Remove inline firebaseConfig and use shared config
 // const firebaseConfig = { ... } (remove this)
 if (!firebase.apps.length) {

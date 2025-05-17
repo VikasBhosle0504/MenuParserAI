@@ -1,3 +1,7 @@
+// debug_documentai.js
+// Displays and manages debug raw text files for Document AI uploads in the Menu Parser app.
+// Handles user authentication, file listing, and viewing raw extracted text from Document AI.
+
 // Remove inline firebaseConfig and use shared config
 // const firebaseConfig = { ... } (remove this)
 if (!firebase.apps.length) {

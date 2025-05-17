@@ -7,8 +7,12 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+// controllers/index.js
+// Entry point for backend cloud functions in the Menu Parser project.
+// Wires up and exports all Firebase cloud functions, delegating business logic to services.
+
+const functions = require('firebase-functions'); // Firebase Functions SDK
+const admin = require('firebase-admin'); // Firebase Admin SDK
 const {Storage} = require('@google-cloud/storage');
 const vision = require('@google-cloud/vision');
 const pdfParse = require('pdf-parse');
@@ -19,7 +23,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-admin.initializeApp();
+admin.initializeApp(); // Initialize Firebase Admin
 const db = admin.firestore();
 const storage = new Storage();
 const visionClient = new vision.ImageAnnotatorClient();
@@ -372,11 +376,22 @@ Be precise and strictly follow the item, variant, option, and nesting structures
   throw new Error('No JSON found in OpenAI response');
 }
 
-// Export cloud functions
+/**
+ * Cloud Function: processMenuUpload
+ * Handles standard menu file uploads and processing.
+ */
 exports.processMenuUpload = processMenuUpload;
+
+/**
+ * Cloud Function: processMenuUploadDocumentAI
+ * Handles Document AI-based menu file uploads and processing.
+ */
 exports.processMenuUploadDocumentAI = processMenuUploadDocumentAI;
 
-// Cloud Function to create a user doc with default role on Auth user creation
+/**
+ * Cloud Function: createUserDoc
+ * Creates a Firestore user document with a default role when a new user is created in Firebase Auth.
+ */
 exports.createUserDoc = functions.auth.user().onCreate((user) => {
   return admin.firestore().collection('users').doc(user.uid).set({
     email: user.email,

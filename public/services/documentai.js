@@ -30,7 +30,7 @@ function uploadHandler(e) {
   const uniqueName = `${base}_${Date.now()}${ext}`;
   const docId = `${base}_${Date.now()}`; // Used for Firestore doc id
 
-  const storageRef = storage.ref(`menus/${uniqueName}`);
+  const storageRef = storage.ref(`menus_documentai/${uniqueName}`);
   const uploadTask = storageRef.put(file);
 
   uploadStatus.textContent = 'Uploading...';
@@ -65,7 +65,7 @@ firebase.auth().onAuthStateChanged(function(user) {
 function pollForProcessedMenu(docId, attempt) {
   const maxAttempts = 40; // e.g., poll for up to 2 minutes (40 x 3s)
   const pollInterval = 3000; // 3 seconds
-  db.collection('menus').doc(docId).get().then((doc) => {
+  db.collection('menus_documentai').doc(docId).get().then((doc) => {
     if (doc.exists) {
       uploadStatus.textContent = 'Done!';
       loadMenus(); // Refresh menus list
@@ -87,7 +87,7 @@ function pollForProcessedMenu(docId, attempt) {
 async function loadMenus() {
   menusList.innerHTML = '<div style="color:var(--muted);padding:12px;">Loading menus...</div>';
   try {
-    const snapshot = await db.collection('menus').orderBy('createdAt', 'desc').get();
+    const snapshot = await db.collection('menus_documentai').orderBy('createdAt', 'desc').get();
     if (snapshot.empty) {
       menusList.innerHTML = '<div style="color:var(--muted);padding:12px;">No parsed menus found.</div>';
       return;

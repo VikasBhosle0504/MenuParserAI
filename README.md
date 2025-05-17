@@ -17,7 +17,7 @@ A Firebase-based web app and cloud function for extracting structured restaurant
 ### 1. Clone the repository
 ```sh
 git clone https://github.com/VikasBhosle0504/MenuParserAI.git
-cd MenuParser
+cd MenuParserAI
 ```
 
 ### 2. Install dependencies
@@ -51,8 +51,23 @@ cd ..
 firebase functions:config:set openai.key="YOUR_OPENAI_KEY"
 ```
 
-### 5. Configure Firebase API keys for frontend
-- In `/public/app.js` and related files, replace the Firebase config with your own project's config from the Firebase Console.
+### 5. Replace Firebase API Keys in All Frontend Files
+
+- You must update the Firebase configuration in all frontend files (such as `/public/app.js`, `/public/login.js`, `/public/debug.js`, `/public/documentai/app.js`, etc.) with your own Firebase project's API keys and settings.
+- You can find your Firebase config in the Firebase Console under Project Settings > General > Your apps > Firebase SDK snippet.
+
+**Example:**
+```js
+// Replace this config with your own from the Firebase Console
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+```
 
 ### 6. Deploy or run locally
 - To run locally with emulators:

@@ -1,0 +1,206 @@
+You are a menu parser.
+
+Extract structured restaurant menu data from the following text and return valid, clean JSON.
+
+### Requirements:
+The menu may include:
+- A restaurant name (optional)
+- Categories and subcategories (e.g., Starters, Drinks, Desserts)(each with optional descriptions)
+- Items, each of which may include:
+
+  - a name (required)
+  - a description (optional)
+  - a single price (optional)
+  - multiple variants (e.g., sizes, flavors), each with:
+    - name
+    - price
+    - description (optional)
+  - options (e.g., add-ons, toppings, modifiers), each with:
+    - name
+    - price (optional)
+    - description (optional)
+  - both variants and options (e.g., each variant can have its own options)
+
+**Auto-naming rules**:
+- If there are multiple prices without a name, label them as "variant1", "variant2", etc.
+  Example : MIRASSOU, CA 9 40 
+  Result:
+    {
+      "name": "MIRASSOU",
+      "variants": [
+        { "name": "variant1", "price": 9 },
+        { "name": "variant2", "price": 40 }
+      ]
+    }
+- If only some prices have names (e.g., "old fashioned 12 / manhatttan 13 9"):
+  - Label the extra unnamed price as "Plain"
+- If options have prices but no names, label them as "option1", "option2", etc.
+- Variants with no names only prices:
+   - If only some items have names, and has muliple prices without names.
+    Example:
+      Coke
+      1.25 18.25 13.56
+      Result:
+        {
+          "name": "Coke",
+          "variants": [
+            { "name": "variant1", "price": 1.25 },
+            { "name": "variant2", "price": 18.25 },
+            { "name": "variant3", "price": 13.56 }
+          ]
+        }
+- Variants with partial names:
+   - If only some prices have names, label the unnamed one as "Plain".
+    Example:
+      Coke
+      Small - 1.99 / Medium - 2.99  3.99
+      Result:
+        {
+          "name": "Coke",
+          "variants": [
+            { "name": "Small", "price": 1.99 },
+            { "name": "Medium", "price": 2.99 },
+            { "name": "Plain", "price": 3.99 }
+          ]
+        }
+
+- Shared variants:
+  - If a block of size/price lines (e.g., "Small - 1.99") appears before a list of item names, apply those variants to each item below until the next section.
+    Example:
+      Small - 1.99
+      Medium - 2.99
+      Large - 3.99
+
+      Coke
+      Sprite
+
+      Result:
+        {
+          "name": "Coke",
+          "variants": [
+            { "name": "Small", "price": 1.99 },
+            { "name": "Medium", "price": 2.99 },
+            { "name": "Plain", "price": 3.99 }
+          ]
+        },{
+          "name": "Sprite",
+          "variants": [
+            { "name": "Small", "price": 1.99 },
+            { "name": "Medium", "price": 2.99 },
+            { "name": "Plain", "price": 3.99 }
+          ]
+        }
+
+- Grouped prices:
+  - When a line like "per piece cake - 1.99" precedes a list of item names, treat "per piece cake" as the main item and the list below as options, all sharing the same price.
+    Example:
+    per piece cake - 1.99
+
+    Chocolate cake 
+    Mosse cake
+    Mango cake
+
+    Result:
+        {
+          "name": "per piece cake",
+          "options": [
+            { "name": "Chocolate cake ", "price": 1.99 },
+            { "name": "Mosse cake", "price": 1.99 }
+            { "name": "Mango cake", "price": 1.99 }
+          ]
+        }
+
+**Clarify**:
+- Do not infer names from lines that appear to be descriptions.
+- If a description is listed directly below an item or variant, include it in the "description" field.
+- Always group variants and their options under the correct item.
+- Look for the spacing between to group properly the items, variants, options, etc.
+
+JSON Examples:
+
+// Single price item
+{
+  "name": "Paneer Tikka",
+  "price": 8.99,
+  "description": "Grilled paneer with spices",
+  "dietary": ["Vegetarian"]
+}
+
+// Item with variants (e.g., sizes)
+{
+  "name": "Coke",
+  "variants": [
+    { "name": "200ml", "price": 1.99 },
+    { "name": "500ml", "price": 2.99 },
+    { "name": "1000ml", "price": 4.99 }
+  ]
+}
+
+// Item with options (e.g., add-ons)
+{
+  "name": "Burger",
+  "price": 5.99,
+  "options": [
+    { "name": "Cheese", "price": 0.5 },
+    { "name": "Bacon", "price": 1.0 }
+  ]
+}
+
+// Item with variants and options for each variant
+{
+  "name": "Pizza",
+  "variants": [
+    {
+      "name": "Small",
+      "price": 7.99,
+      "options": [
+        { 
+          "title": "Choose your toppings", 
+          "choices": [
+            {"name": "Extra Cheese", "price": 1.5 },
+            { "name": "Olives", "price": 0.75 }
+          ]
+        } 
+      ]
+    },
+    {
+      "name": "Large",
+      "price": 12.99,
+      "options": [
+        { 
+          "title": "Choose your toppings", 
+          "choices": [
+            {"name": "Extra Cheese", "price": 1.5 },
+            { "name": "Olives", "price": 0.75 }
+          ]
+        } 
+      ]
+    }
+  ]
+}
+
+
+// Category with subcategory example
+{
+  "restaurant_name": "Optional",
+  "menu": [
+    {
+      "category": "Drinks",
+      "description": "Chilled and refreshing",
+      "subcategories": [
+        {
+          "subcategory": "Soft Drinks",
+          "items": [ /* items here */ ]
+        }
+      ]
+    }
+  ]
+}
+
+- If the menu structure is ambiguous, make your best guess and preserve all possible information.
+- Prefer to keep items grouped with their nearest category, rather than reclassifying based on item name alone.
+
+Text:
+"""
+{{RAW_TEXT}}
+""" 

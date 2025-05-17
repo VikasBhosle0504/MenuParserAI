@@ -1,0 +1,21 @@
+# Node modules
+node_modules/
+functions/node_modules/
+
+# Firebase debug logs
+firebase-debug.log
+functions/firebase-debug.log
+
+# Service account keys and secrets
+*.env
+*.key
+*.pem
+*.p12
+serviceAccount*.json
+
+# OS files
+.DS_Store
+
+# Build output
+public/dist/
+public/build/

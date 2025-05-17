@@ -20,6 +20,10 @@ const os = require('os');
 const fs = require('fs');
 const {DocumentProcessorServiceClient} = require('@google-cloud/documentai').v1;
 
+// Import repositories and utils
+const { uploadToStorage, saveToFirestore } = require('../repositories/storageRepository');
+const { injectColumnBreaks, normalizeOCR, mergePriceLinesWithItems } = require('../utils/menuUtils');
+
 const db = admin.firestore();
 const storage = new Storage();
 const documentaiClient = new DocumentProcessorServiceClient();
@@ -29,8 +33,8 @@ const openai = new OpenAIApi(new Configuration({apiKey: OPENAI_API_KEY}));
 
 const SUPPORTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.docx', '.xlsx'];
 
-const systemPrompt = fs.readFileSync(path.join(__dirname, 'prompts/systemPrompt.txt'), 'utf8');
-const userPromptTemplate = fs.readFileSync(path.join(__dirname, 'prompts/userPrompt.txt'), 'utf8');
+const systemPrompt = fs.readFileSync(path.join(__dirname, '../resources/prompts/systemPrompt.txt'), 'utf8');
+const userPromptTemplate = fs.readFileSync(path.join(__dirname, '../resources/prompts/userPrompt.txt'), 'utf8');
 
 async function extractTextFromFile(filePath, extension) {
   if ([".jpg", ".jpeg", ".png", ".pdf"].includes(extension)) {
@@ -74,41 +78,6 @@ async function extractTextFromFile(filePath, extension) {
 
   return '';
 }
-function injectColumnBreaks(text) {
-  const lines = text.split('\n');
-  for (let i = 40; i < lines.length; i += 40) {
-    lines.splice(i, 0, '### COLUMN BREAK ###');
-  }
-  return lines.join('\n');
-}
-function normalizeOCR(text) {
-  return text
-    .replace(/([A-Z])\s{2,}([A-Z])/g, '$1\n$2')
-    .replace(/([^\d])\s+(\d+\.\d{2})/g, '$1 $2')
-    .replace(/\s{3,}/g, ' ')
-    .trim();
-}
-
-function mergePriceLinesWithItems(text) {
-  const lines = text.split('\n');
-  const merged = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const current = lines[i].trim();
-    const prev = merged[merged.length - 1] || '';
-
-    const isPriceOnly = /^[\d\s/.]+$/.test(current) && /\d/.test(current);
-
-    if (isPriceOnly && prev && !/^\d/.test(prev)) {
-      merged[merged.length - 1] = `${prev} ${current}`;
-    } else {
-      merged.push(current);
-    }
-  }
-
-  return merged.join('\n');
-}
-
 
 async function extractMenuJson(rawText) {
   const prompt = userPromptTemplate.replace('{{RAW_TEXT}}', rawText);
@@ -125,8 +94,6 @@ async function extractMenuJson(rawText) {
   });
   // Find the first JSON block in the response
   const content = response.data.choices[0].message.content;
-  console.log("OpenAI raw response:", content);
-  console.log("Token usage:", response.data.usage); // <-- logs token count
 
 // Try strict JSON parse
     try {
@@ -169,7 +136,6 @@ const processMenuUploadDocumentAI = functions
     let rawTextPath = undefined; // Always define it
     try {
       rawText = await extractTextFromFile(tempFilePath, extension);
-      console.log('Raw text:', rawText);
       // Save rawText to Cloud Storage for debugging
       const rawTextFileName = fileName.replace(extension, '.raw.txt');
       rawTextPath = `debug_documentai/${rawTextFileName}`;

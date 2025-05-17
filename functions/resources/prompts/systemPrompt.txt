@@ -34,7 +34,7 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
         "title": "Item Name",
         "price": double,               // always double; default 0.00
         "variantAvailable": 0 or 1,
-        "varians": [                   // empty array if variantAvailable is 0
+        "variants": [                   // empty array if variantAvailable is 0
           {
             "variantTitle": "Variant name",
             "description": "Description or null",
@@ -68,8 +68,8 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
 ### Hard Rules:
 1. All id, catId, subCatId, and itemId must be auto-generated integers starting from 1.
 2. all nested price values must be of type double, with a default value of 0.00.
-3. If variantAvailable is 0 → varians: []
-   If variantAvailable is 1 → varians must contain data.
+3. If variantAvailable is 0 → variants: []
+   If variantAvailable is 1 → variants must contain data.
 4. If optionsAvailable is 0 → options: []
    If optionsAvailable is 1 → options must contain data.
 5. If commonChoicePriceAvailable is 0 → choices: []

@@ -1,15 +1,7 @@
-// TODO: Replace with your Firebase project config
-const firebaseConfig = {
-    apiKey: "AIzaSyAwWm0vb9O3f8bZdKxvVtux46IzcXooCvo",
-    authDomain: "aimenudigitiliser.firebaseapp.com",
-    projectId: "aimenudigitiliser",
-    storageBucket: "aimenudigitiliser.firebasestorage.app",
-    messagingSenderId: "827186649635",
-    appId: "1:827186649635:web:3dd9e2a0ab84f2b6426f96"
-};
-
+// Remove inline firebaseConfig and use shared config
+// const firebaseConfig = { ... } (remove this)
 if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(window.firebaseConfig);
 }
 const storage = firebase.storage();
 const db = firebase.firestore();
@@ -140,7 +132,7 @@ firebase.auth().onAuthStateChanged(function(user) {
   if (user) {
     loadDebugList();
   } else {
-    window.location.href = 'index.html';
+    window.location.href = '../index.html';
   }
 });
 
@@ -149,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function() {
       firebase.auth().signOut().then(() => {
-        window.location.href = 'index.html';
+        window.location.href = '../index.html';
       });
     });
   }

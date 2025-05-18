@@ -26,7 +26,7 @@ const {DocumentProcessorServiceClient} = require('@google-cloud/documentai').v1;
 
 // Import repositories and utils
 const { uploadToStorage, saveToFirestore } = require('../repositories/storageRepository');
-const { injectColumnBreaks, normalizeOCR, mergePriceLinesWithItems } = require('../utils/menuUtils');
+const { injectColumnBreaks, normalizeOCR, mergePriceLinesWithItems, filterNonMenuText, mergeNearbyPrices } = require('../utils/menuUtils');
 
 const db = admin.firestore();
 const storage = new Storage();
@@ -103,25 +103,8 @@ async function extractTextFromFile(filePath, extension) {
       lineObjs = text.split('\n').map((t, i) => ({ text: t, x: 0, y: i * 20 }));
     }
 
-    const mergedLineObjs = [];
-    for (let i = 0; i < lineObjs.length; i++) {
-      const current = lineObjs[i];
-      const prev = mergedLineObjs[mergedLineObjs.length - 1];
-
-      const isPriceOnly = /^(\$?\d+(\.\d{1,2})?)$/.test(current.text.trim());
-
-      if (isPriceOnly && prev && !/^(\$?\d+(\.\d{1,2})?)$/.test(prev.text.trim())) {
-        // Merge price into previous line's text
-        prev.text += ` ${current.text}`;
-      } else {
-        mergedLineObjs.push({ ...current });
-      }
-    }
-    // Optionally normalize/merge lines before column grouping
-    // (If you want to use normalizeOCR/mergePriceLinesWithItems, do it here per line)
-    // const normalizedObjs = lineObjs.map(l => ({...l, text: normalizeOCR(l.text)}));
-    // const mergedObjs = ... (if you want to merge price lines, etc)
-    return injectColumnBreaks(mergedLineObjs,180);
+    // Return the raw OCR output as an array of objects with text and coordinates
+    return lineObjs;
   }
   if (extension === '.docx') {
     // Use Mammoth for DOCX files
@@ -146,7 +129,8 @@ async function extractTextFromFile(filePath, extension) {
  * @returns {Promise<Object>} Parsed menu JSON.
  */
 async function extractMenuJson(rawText) {
-  const prompt = userPromptTemplate.replace('{{RAW_TEXT}}', rawText);
+  // Always stringify the chunk for the prompt
+  const prompt = userPromptTemplate.replace('{{RAW_TEXT}}', JSON.stringify(rawText, null, 2));
   const sysContent = systemPrompt;
   const response = await openai.createChatCompletion({
     model: 'gpt-4',
@@ -203,7 +187,7 @@ const processMenuUploadDocumentAI = functions
       const rawTextFileName = fileName.replace(extension, '.raw.txt');
       rawTextPath = `debug_documentai/${rawTextFileName}`;
       const tempRawTextPath = path.join(os.tmpdir(), rawTextFileName);
-      fs.writeFileSync(tempRawTextPath, rawText);
+      fs.writeFileSync(tempRawTextPath, JSON.stringify(rawText, null, 2));
       await storage.bucket(fileBucket).upload(tempRawTextPath, {destination: rawTextPath, contentType: 'text/plain'});
       fs.unlinkSync(tempRawTextPath);
     } catch (err) {
@@ -215,9 +199,10 @@ const processMenuUploadDocumentAI = functions
     let mergedMenu = [];
     let menuJson = {};
     try {
-      const chunks = rawText.split('### COLUMN BREAK ###');
+      // If rawText is an array (layout-aware OCR), treat as a single chunk
+      const chunks = Array.isArray(rawText) ? [rawText] : rawText.split('### COLUMN BREAK ###');
       for (const chunk of chunks) {
-        if (chunk.trim().length === 0) continue;
+        if ((Array.isArray(chunk) && chunk.length === 0) || (typeof chunk === 'string' && chunk.trim().length === 0)) continue;
         try {
           const chunkJson = await extractMenuJson(chunk);
           // Merge menu arrays or objects

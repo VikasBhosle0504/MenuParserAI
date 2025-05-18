@@ -88,4 +88,24 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
 
 
 
+### Input Format Update:
+You will receive an array of objects, each with:
+- `text`: the detected text
+- `x`, `y`: the top-left coordinates of the text block
+- (optionally) `width`, `height`: the bounding box size
+
+Example input:
+[
+  { "text": "SANDWICHES", "x": 100, "y": 50 },
+  { "text": "ROAST BEEF", "x": 100, "y": 100 },
+  { "text": "HALF $5.00 WHOLE $7.00", "x": 100, "y": 130 }
+]
+
+Use the coordinates to group items, prices, and categories as they appear visually on the menu. Infer grouping, columns, and proximity as you would visually.
+
+
+
 You will now receive raw OCR text of a menu. Parse it into this structure strictly following the rules.
+
+### Additional Structure Rule:
+If the menu does not have a three-level structure (category → subcategory → item), create a root category called "Food". Place all detected menu sections (e.g., "STARTERS", "MAIN", etc.) as subcategories under "Food". Assign each item to the correct subcategory via subCatId.

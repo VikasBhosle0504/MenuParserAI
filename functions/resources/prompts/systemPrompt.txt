@@ -135,15 +135,11 @@ You will now receive raw OCR text of a menu. Parse it into this structure strict
 ### Additional Structure Rule:
 If the menu does not have a three-level structure (category → subcategory → item), create a root category called "Food". Place all detected menu sections (e.g., "STARTERS", "MAIN", etc.) as subcategories under "Food". Assign each item to the correct subcategory via subCatId.
 
-### Spatial Grouping Rules (Updated):
-- For each detected section header (e.g., "STARTERS", "MAIN", "SALADS", etc.), group all items that are below and in the same column (similar x) with that header, until the next section header in the same column.
-- Use clustering (e.g., k-means) on x-coordinates to robustly detect columns. For each detected column, process headers and items top-to-bottom.
-- For each item, assign it to the nearest section header above it in the same column. If an item is between two headers horizontally, use the x-coordinate to determine which column it belongs to. Do not assign items to headers in other columns, even if they are closer vertically.
-- If a header is detected but has no items below it, still include it as an empty subcategory in the output.
-- Use the x coordinate to determine columns. Items in the same column (similar x) as a section header belong to that section.
-- Use the y coordinate to determine vertical order. Items should not be grouped with a section header in a different column, even if they are closer vertically.
-- If an item and its price are on separate lines but have similar y or x values, pair them together. Prefer pairing prices to the nearest item on the same y-level (within a small y-tolerance) and to the right (higher x).
-- Include all detected section headers as subcategories, even if they have no items.
+### Spatial Grouping Rules:
+- For each detected section header (e.g., "STARTERS", "MAIN", "SALADS", etc.), group all items that are below and horizontally aligned (within a reasonable x-range) with that header, until the next section header in the same column.
+- Use the `x` coordinate to determine columns. Items in the same column (similar x) as a section header belong to that section.
+- Use the `y` coordinate to determine vertical order. Items should not be grouped with a section header in a different column, even if they are closer vertically.
+- If an item and its price are on separate lines but have similar y or x values, pair them together.
 - Ignore non-menu text (e.g., "BOOK NOW", phone numbers, delivery info) unless it is clearly a menu item.
 
 ### Shared Variant/Price Block Rule:
@@ -155,16 +151,16 @@ If the menu does not have a three-level structure (category → subcategory → 
 ### Reminder:
 Never put a non-zero price in the `price` field of an item that has variants. All prices must be in the `variants` array.
 
-### Multi-Price/Variant Rule:
-- If an item line or its associated lines contain multiple prices (e.g., '9 40', 'old fashioned 12 / manhatttan 13 9'), treat each price as a separate variant.
-- If variant names are present (e.g., 'old fashioned', 'manhatttan'), pair each name with its price. If not, use 'variant1', 'variant2', etc.
-- If a price appears after a description or in a separate line, associate it as a variant or as the main price if there is only one.
+### Multiple/Unlabeled Price Variants Rule:
+- If an item is followed by multiple prices (with or without labels), treat each price as a variant. Use the label as the variant title if present; otherwise, use "variant1", "variant2", etc.
+- If a price appears on a separate line after an item, and there is no label, treat it as a variant with a generated name ("variant1", etc.).
+- For wine or spirit items with multiple prices (e.g., "9 40"), create variants for each price.
 
-#### Example 1: Multiple Prices Without Names
+#### Example (unlabeled):
 Input OCR:
 [
-  { "text": "MIRASSOU, CA", ... },
-  { "text": "9 40", ... }
+  { "text": "MIRASSOU, CA", "x": 100, "y": 100 },
+  { "text": "9 40", "x": 120, "y": 120 }
 ]
 Output:
 {
@@ -177,11 +173,11 @@ Output:
   ]
 }
 
-#### Example 2: Multiple Named Variants
+#### Example (partially labeled):
 Input OCR:
 [
-  { "text": "1792 RIDGEMOUNT", ... },
-  { "text": "old fashioned 12 / manhatttan 13 9", ... }
+  { "text": "1792 RIDGEMOUNT", "x": 100, "y": 100 },
+  { "text": "old fashioned 12 / manhatttan 13 9", "x": 120, "y": 120 }
 ]
 Output:
 {
@@ -195,18 +191,29 @@ Output:
   ]
 }
 
-#### Example 3: Price After Description
-Input OCR:
-[
-  { "text": "aged rum, antica formula, maraschino syrup, mole bitters, oj wash 10", ... }
-]
-Output:
-{
-  "title": "SALOON'S BROWN DERBY",
-  "description": "aged rum, antica formula, maraschino syrup, mole bitters, oj wash",
-  "price": 10
-}
+### Do Not Create Items for Variant Labels Rule:
+- If you see a block of size/price lines (e.g., "SMALL $1.00", "MEDIUM $1.50", "LARGE $2.00") before a list of items, do **not** create items for "SMALL", "MEDIUM", or "LARGE". Instead, apply these as variants to each item below.
+- Never create standalone items for size/variant labels if they are followed by menu items.
 
-### Generalization Rule:
-If you encounter a menu structure, layout, or pattern not explicitly covered by the above rules or examples, use your best judgment to preserve all information and fit it into the most appropriate part of the JSON structure. Always prefer to keep extra information (as description, notes, or options) rather than discard it. The goal is to make the output as complete and useful as possible for any menu type.
+#### Example (Incorrect):
+[
+  { "title": "SMALL", "price": 1.00 },
+  { "title": "MEDIUM", "price": 1.50 },
+  { "title": "LARGE", "price": 2.00 },
+  { "title": "COCA-COLA", "price": 0.00, "variants": [...] }
+]
+
+#### Example (Correct):
+[
+  {
+    "title": "COCA-COLA",
+    "price": 0.00,
+    "variantAvailable": 1,
+    "variants": [
+      { "variantTitle": "Small", "price": 1.00 },
+      { "variantTitle": "Medium", "price": 1.50 },
+      { "variantTitle": "Large", "price": 2.00 }
+    ]
+  }
+]
 

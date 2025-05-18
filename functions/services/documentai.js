@@ -121,7 +121,7 @@ async function extractTextFromFile(filePath, extension) {
     // (If you want to use normalizeOCR/mergePriceLinesWithItems, do it here per line)
     // const normalizedObjs = lineObjs.map(l => ({...l, text: normalizeOCR(l.text)}));
     // const mergedObjs = ... (if you want to merge price lines, etc)
-    return injectColumnBreaks(mergedLineObjs);
+    return injectColumnBreaks(mergedLineObjs,180);
   }
   if (extension === '.docx') {
     // Use Mammoth for DOCX files

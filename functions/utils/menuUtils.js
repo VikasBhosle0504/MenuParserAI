@@ -16,43 +16,48 @@
  *   { text: 'Zesty Prawns', x: 400, y: 50 }
  * ]
  */
-function injectColumnBreaks(lines, xThreshold = 150) {
+function injectColumnBreaks(lines, xThreshold = 180) {
   if (!Array.isArray(lines) || lines.length === 0) return '';
 
-  // Step 1: Group into columns based on x proximity
   const columns = [];
 
   for (const line of lines) {
-    let found = false;
+    let matchedCol = null;
+    let minDistance = Infinity;
+
+    // Find the best matching column based on X distance
     for (const col of columns) {
       const avgX = col.lines.reduce((sum, l) => sum + l.x, 0) / col.lines.length;
-      if (Math.abs(avgX - line.x) <= xThreshold) {
-        col.lines.push(line);
-        found = true;
-        break;
+      const dist = Math.abs(avgX - line.x);
+      if (dist < xThreshold && dist < minDistance) {
+        matchedCol = col;
+        minDistance = dist;
       }
     }
-    if (!found) {
+
+    if (matchedCol) {
+      matchedCol.lines.push(line);
+    } else {
       columns.push({ lines: [line] });
     }
   }
 
-  // Step 2: Sort each column top-to-bottom
+  // Sort lines top-to-bottom in each column
   for (const col of columns) {
     col.lines.sort((a, b) => a.y - b.y);
   }
 
-  // Step 3: Sort columns left-to-right using average X
+  // Sort columns left-to-right by average X
   columns.sort((a, b) => {
     const avgX1 = a.lines.reduce((sum, l) => sum + l.x, 0) / a.lines.length;
     const avgX2 = b.lines.reduce((sum, l) => sum + l.x, 0) / b.lines.length;
     return avgX1 - avgX2;
   });
 
-  // Step 4: Join all lines
-  const columnBlocks = columns.map(col => col.lines.map(l => l.text).join('\n'));
-  return columnBlocks.join('\n### COLUMN BREAK ###\n');
+  const columnTexts = columns.map(col => col.lines.map(l => l.text).join('\n'));
+  return columnTexts.join('\n### COLUMN BREAK ###\n');
 }
+
 
 
 /**

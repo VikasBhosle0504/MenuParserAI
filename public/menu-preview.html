@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Preview - Menu Parser</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .menu-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .category-section {
+            margin-bottom: 40px;
+        }
+        .subcategory-section {
+            margin-bottom: 30px;
+        }
+        .menu-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+        .variant-item {
+            margin-left: 20px;
+            color: #666;
+        }
+        .price {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .description {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">Menu Parser</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="menu-preview.html">Menu Preview</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="menu-container">
+        <h1 class="mb-4">Menu Preview</h1>
+        <div id="menuContent"></div>
+    </div>
+
+    <script>
+        // Function to render the menu
+        function renderMenu(menuData) {
+            const menuContent = document.getElementById('menuContent');
+            menuContent.innerHTML = '';
+
+            menuData.menu.forEach(menuSection => {
+                const { category, sub_category, items } = menuSection.data;
+
+                // Create category sections
+                category.forEach(cat => {
+                    const categorySection = document.createElement('div');
+                    categorySection.className = 'category-section';
+                    
+                    const categoryTitle = document.createElement('h2');
+                    categoryTitle.className = 'mb-3';
+                    categoryTitle.textContent = cat.title;
+                    if (cat.description) {
+                        const categoryDesc = document.createElement('p');
+                        categoryDesc.className = 'description';
+                        categoryDesc.textContent = cat.description;
+                        categorySection.appendChild(categoryDesc);
+                    }
+                    categorySection.appendChild(categoryTitle);
+
+                    // Get subcategories for this category
+                    const subcategories = sub_category.filter(sub => sub.catId === cat.id);
+                    
+                    subcategories.forEach(subcat => {
+                        const subcategorySection = document.createElement('div');
+                        subcategorySection.className = 'subcategory-section';
+                        
+                        const subcategoryTitle = document.createElement('h3');
+                        subcategoryTitle.className = 'mb-3';
+                        subcategoryTitle.textContent = subcat.title;
+                        if (subcat.description) {
+                            const subcatDesc = document.createElement('p');
+                            subcatDesc.className = 'description';
+                            subcatDesc.textContent = subcat.description;
+                            subcategorySection.appendChild(subcatDesc);
+                        }
+                        subcategorySection.appendChild(subcategoryTitle);
+
+                        // Get items for this subcategory
+                        const subcategoryItems = items.filter(item => item.subCatId === subcat.id);
+                        
+                        subcategoryItems.forEach(item => {
+                            const itemElement = document.createElement('div');
+                            itemElement.className = 'menu-item';
+                            
+                            const itemTitle = document.createElement('h4');
+                            itemTitle.className = 'd-flex justify-content-between align-items-center';
+                            itemTitle.innerHTML = `
+                                <span>${item.title}</span>
+                                <span class="price">$${item.price.toFixed(2)}</span>
+                            `;
+                            itemElement.appendChild(itemTitle);
+
+                            // Add variants if available
+                            if (item.variantAvailable && item.variants.length > 0) {
+                                const variantsList = document.createElement('div');
+                                variantsList.className = 'variants-list';
+                                item.variants.forEach(variant => {
+                                    const variantElement = document.createElement('div');
+                                    variantElement.className = 'variant-item d-flex justify-content-between align-items-center';
+                                    variantElement.innerHTML = `
+                                        <span>${variant.variantTitle}</span>
+                                        <span class="price">$${variant.price.toFixed(2)}</span>
+                                    `;
+                                    if (variant.description) {
+                                        const variantDesc = document.createElement('p');
+                                        variantDesc.className = 'description';
+                                        variantDesc.textContent = variant.description;
+                                        variantElement.appendChild(variantDesc);
+                                    }
+                                    variantsList.appendChild(variantElement);
+                                });
+                                itemElement.appendChild(variantsList);
+                            }
+
+                            subcategorySection.appendChild(itemElement);
+                        });
+
+                        categorySection.appendChild(subcategorySection);
+                    });
+
+                    menuContent.appendChild(categorySection);
+                });
+            });
+        }
+
+        // Load and parse the menu data
+        fetch('documentuu.json')
+            .then(response => response.json())
+            .then(data => {
+                renderMenu(data);
+            })
+            .catch(error => {
+                console.error('Error loading menu data:', error);
+                document.getElementById('menuContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        Error loading menu data. Please try again later.
+                    </div>
+                `;
+            });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

@@ -32,6 +32,7 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
         "itemId": number,              // auto-generated, starts at 1
         "subCatId": subcategoryId,     // default 0
         "title": "Item Name",
+        "description": "Description or empty string", // default empty string
         "price": double,               // always double; default 0.00
         "variantAvailable": 0 or 1,
         "variants": [                   // empty array if variantAvailable is 0
@@ -76,6 +77,8 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
    If commonChoicePriceAvailable is 1 → choices must contain data.
 6. Maintain correct catId and subCatId references between sections.
 7. Always return valid, fully-formed JSON with proper nesting and consistent structure as described above.
+8. Every item must include a `description` field. If no description is present, set it to an empty string.
+9. If an item has variants, set the item's price to 0.00 and put all prices in the variants array.
 
 
 ### Auto-naming & Pricing Rules:
@@ -109,3 +112,10 @@ You will now receive raw OCR text of a menu. Parse it into this structure strict
 
 ### Additional Structure Rule:
 If the menu does not have a three-level structure (category → subcategory → item), create a root category called "Food". Place all detected menu sections (e.g., "STARTERS", "MAIN", etc.) as subcategories under "Food". Assign each item to the correct subcategory via subCatId.
+
+### Spatial Grouping Rules:
+- For each detected section header (e.g., "STARTERS", "MAIN", "SALADS", etc.), group all items that are below and horizontally aligned (within a reasonable x-range) with that header, until the next section header in the same column.
+- Use the `x` coordinate to determine columns. Items in the same column (similar x) as a section header belong to that section.
+- Use the `y` coordinate to determine vertical order. Items should not be grouped with a section header in a different column, even if they are closer vertically.
+- If an item and its price are on separate lines but have similar y or x values, pair them together.
+- Ignore non-menu text (e.g., "BOOK NOW", phone numbers, delivery info) unless it is clearly a menu item.

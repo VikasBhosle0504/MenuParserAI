@@ -7,6 +7,238 @@
     <link rel="stylesheet" href="../assets/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      .menu-preview-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+      }
+      .menu-preview-content {
+        position: relative;
+        background: white;
+        margin: 2rem auto;
+        padding: 2rem 2rem 1.5rem 2rem;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .menu-preview-close {
+        position: fixed;
+        top: 32px;
+        right: 32px;
+        z-index: 1100;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .menu-preview-close:hover, .menu-preview-close:focus {
+        background: #f0f0f0;
+      }
+      @media (max-width: 900px) {
+        .menu-preview-close {
+          top: 12px;
+          right: 12px;
+        }
+      }
+      .category-section {
+        margin-bottom: 24px;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .category-header {
+        background: #1a237e;
+        padding: 18px 28px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e0e0e0;
+        border-radius: 12px 12px 0 0;
+        transition: background 0.2s;
+      }
+      .category-header:hover, .category-header:focus {
+        background: #283593;
+      }
+      .category-content {
+        padding: 24px 28px;
+        background: #f6f8fa;
+      }
+      .subcategory-section {
+        margin-bottom: 18px;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+        background: white;
+      }
+      .subcategory-header {
+        background: #0d47a1;
+        padding: 14px 24px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e0e0e0;
+        border-radius: 10px 10px 0 0;
+        transition: background 0.2s;
+      }
+      .subcategory-header:hover, .subcategory-header:focus {
+        background: #1565c0;
+      }
+      .subcategory-content {
+        padding: 18px 24px;
+        background: #fafdff;
+      }
+      .menu-item {
+        padding: 14px 0 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .menu-item:last-child {
+        border-bottom: none;
+      }
+      .item-title {
+        font-size: 1.08rem;
+        font-weight: 700;
+        color: #1a237e;
+        margin-bottom: 4px;
+        letter-spacing: 0.2px;
+      }
+      .variants-list {
+        margin-top: 2px;
+        padding-left: 18px;
+        border-left: 2px solid #e0e0e0;
+      }
+      .variant-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #424242;
+        font-size: 0.98rem;
+        padding: 4px 0 4px 0;
+        border-bottom: 1px dashed #f0f0f0;
+      }
+      .variant-item:last-child {
+        border-bottom: none;
+      }
+      .variant-title {
+        font-weight: 600;
+        color: #0d47a1;
+      }
+      .choices-list {
+        margin-left: 24px;
+        margin-top: 2px;
+        padding-left: 12px;
+        border-left: 2px dotted #b3c6e0;
+      }
+      .choice-item {
+        font-size: 0.95rem;
+        color: #374151;
+        padding: 2px 0;
+      }
+      .price {
+        font-weight: 600;
+        color: #1a237e;
+        font-size: 0.98rem;
+        min-width: 50px;
+        text-align: right;
+      }
+      .description {
+        color: #757575;
+        font-size: 0.85rem;
+        margin-top: 4px;
+        font-style: italic;
+      }
+      .category-title {
+        font-size: 1.18rem;
+        font-weight: 700;
+        margin: 0;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .subcategory-title {
+        font-size: 1.08rem;
+        font-weight: 600;
+        margin: 0;
+        color: white;
+        letter-spacing: 0.3px;
+      }
+      .toggle-icon {
+        transition: transform 0.2s;
+        color: white;
+        font-size: 1.1rem;
+        margin-left: 10px;
+      }
+      .collapsed .toggle-icon {
+        transform: rotate(-90deg);
+      }
+      .collapsed .category-content,
+      .collapsed .subcategory-content {
+        display: none;
+      }
+      .menu-preview-title {
+        color: #1a237e;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .action-btn {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        padding: 0;
+        border-radius: 50%;
+        position: relative;
+        transition: background 0.2s, box-shadow 0.2s;
+      }
+      .action-btn:hover, .action-btn:focus {
+        background: #e3e6f0;
+        box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+      }
+      .action-btn[title]:hover:after, .action-btn[title]:focus:after {
+        content: attr(title);
+        position: absolute;
+        left: 50%;
+        bottom: 110%;
+        transform: translateX(-50%);
+        background: #222;
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0.95;
+        z-index: 10;
+      }
+      .action-btn span {
+        pointer-events: none;
+      }
+    </style>
   </head>
   <body>
     <div class="container py-5">
@@ -20,7 +252,6 @@
           <li><a href="debug.html" class="nav-link"><span>📝</span> Debug Raw Texts</a></li>
           <li><a href="documentindex.html" class="nav-link active"><span>📄</span> Document AI Menus</a></li>
           <li><a href="debug_documentai.html" class="nav-link"><span>🤖</span> Document AI Debug Raw Texts</a></li>
-          
         </ul>
       </nav>
       <section class="upload-section mb-4">
@@ -49,10 +280,11 @@
               <div class="menu-modal-left">
                 <div id="menuSourcePreviewContainer"></div>
                 <div class="d-flex justify-content-end align-items-center mt-3 gap-2 w-100">
-                  <button id="copyJsonBtn" class="btn btn-outline-secondary btn-sm" title="Copy JSON"><span aria-hidden="true">📋</span> Copy</button>
-                  <button id="downloadJsonBtn" class="btn btn-outline-secondary btn-sm" title="Download JSON"><span aria-hidden="true">⬇️</span> Download</button>
-                  <button id="viewDebugRawBtn" class="btn btn-outline-secondary btn-sm" title="View Debug Raw Text" style="display:none;"><span aria-hidden="true">📝</span> View Debug Raw Text</button>
-                  <button id="copyRawOcrBtn" class="btn btn-outline-secondary btn-sm" title="Copy Raw OCR Text"><span aria-hidden="true">📝</span> Copy Raw OCR Text</button>
+                  <button id="previewMenuBtn" class="btn btn-outline-primary btn-sm action-btn" title="Preview Menu"><span aria-hidden="true">👁️</span></button>
+                  <button id="copyJsonBtn" class="btn btn-outline-secondary btn-sm action-btn" title="Copy JSON"><span aria-hidden="true">📋</span></button>
+                  <button id="downloadJsonBtn" class="btn btn-outline-secondary btn-sm action-btn" title="Download JSON"><span aria-hidden="true">⬇️</span></button>
+                  <button id="viewDebugRawBtn" class="btn btn-outline-secondary btn-sm action-btn" title="View Debug Raw Text" style="display:none;"><span aria-hidden="true">📝</span></button>
+                  <button id="copyRawOcrBtn" class="btn btn-outline-secondary btn-sm action-btn" title="Copy Raw OCR Text"><span aria-hidden="true">📝</span></button>
                 </div>
               </div>
             </div>
@@ -60,12 +292,179 @@
         </div>
       </section>
     </div>
+
+    <!-- Menu Preview Modal -->
+    <div id="menuPreviewModal" class="menu-preview-modal">
+      <button id="closeMenuPreview" class="menu-preview-close" aria-label="Close">&times;</button>
+      <div class="menu-preview-content">
+        <h2 class="menu-preview-title">Menu Preview</h2>
+        <div id="menuPreviewContent"></div>
+      </div>
+    </div>
+
     <script src="../services/firebaseConfig.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="../services/documentai.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const menuPreviewModal = document.getElementById('menuPreviewModal');
+        const menuPreviewContent = document.getElementById('menuPreviewContent');
+        const closeMenuPreview = document.getElementById('closeMenuPreview');
+        const previewMenuBtn = document.getElementById('previewMenuBtn');
+
+        function createToggleIcon() {
+          const icon = document.createElement('span');
+          icon.className = 'toggle-icon';
+          icon.innerHTML = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 8L10 12L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          return icon;
+        }
+
+        function formatPrice(price) {
+          return Number(price).toFixed(2);
+        }
+
+        function renderChoices(choices) {
+          if (!choices || !choices.length) return null;
+          const choicesList = document.createElement('div');
+          choicesList.className = 'choices-list';
+          choices.forEach(choice => {
+            const choiceItem = document.createElement('div');
+            choiceItem.className = 'choice-item';
+            choiceItem.textContent = choice.title;
+            choicesList.appendChild(choiceItem);
+          });
+          return choicesList;
+        }
+
+        function renderMenuPreview(menuData) {
+          menuPreviewContent.innerHTML = '';
+          menuData.menu.forEach(menuSection => {
+            const { category, sub_category, items } = menuSection.data;
+            category.forEach(cat => {
+              const categorySection = document.createElement('div');
+              categorySection.className = 'category-section';
+              const categoryHeader = document.createElement('div');
+              categoryHeader.className = 'category-header';
+              const categoryTitle = document.createElement('h2');
+              categoryTitle.className = 'category-title';
+              categoryTitle.textContent = cat.title;
+              categoryHeader.appendChild(categoryTitle);
+              categoryHeader.appendChild(createToggleIcon());
+              const categoryContent = document.createElement('div');
+              categoryContent.className = 'category-content';
+              if (cat.description) {
+                const categoryDesc = document.createElement('p');
+                categoryDesc.className = 'description';
+                categoryDesc.textContent = cat.description;
+                categoryContent.appendChild(categoryDesc);
+              }
+              const subcategories = sub_category.filter(sub => sub.catId === cat.id);
+              subcategories.forEach(subcat => {
+                const subcategorySection = document.createElement('div');
+                subcategorySection.className = 'subcategory-section';
+                const subcategoryHeader = document.createElement('div');
+                subcategoryHeader.className = 'subcategory-header';
+                const subcategoryTitle = document.createElement('h3');
+                subcategoryTitle.className = 'subcategory-title';
+                subcategoryTitle.textContent = subcat.title;
+                subcategoryHeader.appendChild(subcategoryTitle);
+                subcategoryHeader.appendChild(createToggleIcon());
+                const subcategoryContent = document.createElement('div');
+                subcategoryContent.className = 'subcategory-content';
+                if (subcat.description) {
+                  const subcatDesc = document.createElement('p');
+                  subcatDesc.className = 'description';
+                  subcatDesc.textContent = subcat.description;
+                  subcategoryContent.appendChild(subcatDesc);
+                }
+                const subcategoryItems = items.filter(item => item.subCatId === subcat.id);
+                subcategoryItems.forEach(item => {
+                  const itemElement = document.createElement('div');
+                  itemElement.className = 'menu-item';
+                  // Item name always first
+                  const itemTitle = document.createElement('div');
+                  itemTitle.className = 'item-title';
+                  itemTitle.textContent = item.title;
+                  itemElement.appendChild(itemTitle);
+                  // Variants (if any)
+                  if (item.variantAvailable && item.variants.length > 0) {
+                    const variantsList = document.createElement('div');
+                    variantsList.className = 'variants-list';
+                    item.variants.forEach(variant => {
+                      const variantElement = document.createElement('div');
+                      variantElement.className = 'variant-item';
+                      const variantTitle = document.createElement('span');
+                      variantTitle.className = 'variant-title';
+                      variantTitle.textContent = variant.variantTitle;
+                      const variantPrice = document.createElement('span');
+                      variantPrice.className = 'price';
+                      variantPrice.textContent = formatPrice(variant.price);
+                      variantElement.appendChild(variantTitle);
+                      variantElement.appendChild(variantPrice);
+                      // Choices under variant (if any)
+                      if (variant.choices && variant.choices.length > 0) {
+                        const choicesList = renderChoices(variant.choices);
+                        if (choicesList) variantElement.appendChild(choicesList);
+                      }
+                      variantsList.appendChild(variantElement);
+                    });
+                    itemElement.appendChild(variantsList);
+                  } else {
+                    // No variants, just price
+                    const priceSpan = document.createElement('span');
+                    priceSpan.className = 'price';
+                    priceSpan.textContent = formatPrice(item.price);
+                    itemElement.appendChild(priceSpan);
+                  }
+                  subcategoryContent.appendChild(itemElement);
+                });
+                subcategorySection.appendChild(subcategoryHeader);
+                subcategorySection.appendChild(subcategoryContent);
+                categoryContent.appendChild(subcategorySection);
+              });
+              categorySection.appendChild(categoryHeader);
+              categorySection.appendChild(categoryContent);
+              menuPreviewContent.appendChild(categorySection);
+            });
+            // Modern chevron expand/collapse
+            menuPreviewContent.querySelectorAll('.category-header, .subcategory-header').forEach(header => {
+              header.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+                const section = this.parentElement;
+                section.classList.toggle('collapsed');
+                const icon = this.querySelector('.toggle-icon');
+                if (section.classList.contains('collapsed')) {
+                  icon.style.transform = 'rotate(-90deg)';
+                } else {
+                  icon.style.transform = 'rotate(0deg)';
+                }
+              });
+            });
+          });
+        }
+        previewMenuBtn.addEventListener('click', function() {
+          const menuJson = document.getElementById('menuJson').textContent;
+          try {
+            const menuData = JSON.parse(menuJson);
+            renderMenuPreview(menuData);
+            menuPreviewModal.style.display = 'block';
+          } catch (error) {
+            console.error('Error parsing menu data:', error);
+          }
+        });
+        closeMenuPreview.addEventListener('click', function() {
+          menuPreviewModal.style.display = 'none';
+        });
+        window.addEventListener('click', function(event) {
+          if (event.target === menuPreviewModal) {
+            menuPreviewModal.style.display = 'none';
+          }
+        });
+      });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

@@ -16,7 +16,7 @@ const storage = new Storage();
  * @returns {Promise<void>}
  */
 async function uploadToStorage(bucket, filePath, localPath, contentType) {
-  await storage.bucket(bucket).upload(localPath, { destination: filePath, contentType });
+  await storage.bucket(bucket).upload(localPath, { destination: filePath, contentType:contentType });
 }
 
 /**

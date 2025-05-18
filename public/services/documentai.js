@@ -224,6 +224,31 @@ function showMenuDetails(data) {
         }, 100);
       };
     }
+    const copyRawOcrBtn = document.getElementById('copyRawOcrBtn');
+    if (copyRawOcrBtn) {
+      copyRawOcrBtn.onclick = async () => {
+        console.log('debugRawTextPath:', data.debugRawTextPath);
+        if (data.debugRawTextPath) {
+          try {
+            const url = await storage.ref(data.debugRawTextPath).getDownloadURL();
+            console.log('Download URL:', url);
+            const res = await fetch(url);
+            const text = await res.text();
+            console.log('Raw OCR Text:', text);
+            await navigator.clipboard.writeText(text);
+            copyRawOcrBtn.textContent = 'Copied!';
+            setTimeout(() => { copyRawOcrBtn.innerHTML = '<span aria-hidden="true">📝</span> Copy Raw OCR Text'; }, 1200);
+          } catch (err) {
+            console.error('Copy error:', err);
+            copyRawOcrBtn.textContent = 'Error!';
+            setTimeout(() => { copyRawOcrBtn.innerHTML = '<span aria-hidden="true">📝</span> Copy Raw OCR Text'; }, 1200);
+          }
+        } else {
+          copyRawOcrBtn.textContent = 'No OCR Text';
+          setTimeout(() => { copyRawOcrBtn.innerHTML = '<span aria-hidden="true">📝</span> Copy Raw OCR Text'; }, 1200);
+        }
+      };
+    }
   }, 0);
 }
 

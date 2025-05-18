@@ -67,11 +67,46 @@ async function extractTextFromFile(filePath, extension) {
       },
     };
     const [result] = await documentaiClient.processDocument(request);
-    const {text} = result.document;
-    // Normalize and merge lines, then inject column breaks
-    const normalized = normalizeOCR(text);
-    const merged = mergePriceLinesWithItems(normalized);
-    return injectColumnBreaks(merged);
+    const {text, paragraphs, lines, tokens, entities, pages} = result.document;
+    // Extract lines with coordinates from Document AI result
+    // Fallback: use paragraphs if lines are not available
+    let lineObjs = [];
+    if (result.document.pages && result.document.pages.length > 0) {
+      for (const page of result.document.pages) {
+        // Use lines if available, else paragraphs
+        const blocks = page.lines && page.lines.length > 0 ? page.lines : (page.paragraphs || []);
+        for (const block of blocks) {
+          // Get text segment
+          let blockText = '';
+          if (block.layout && block.layout.textAnchor) {
+            const {textAnchor} = block.layout;
+            if (textAnchor.textSegments && textAnchor.textSegments.length > 0) {
+              for (const seg of textAnchor.textSegments) {
+                blockText += text.substring(seg.startIndex || 0, seg.endIndex);
+              }
+            }
+          }
+          // Get top-left x/y from bounding box
+          let x = 0, y = 0;
+          if (block.layout && block.layout.boundingPoly && block.layout.boundingPoly.vertices && block.layout.boundingPoly.vertices.length > 0) {
+            x = block.layout.boundingPoly.vertices[0].x || 0;
+            y = block.layout.boundingPoly.vertices[0].y || 0;
+          }
+          if (blockText.trim()) {
+            lineObjs.push({ text: blockText.trim(), x, y });
+          }
+        }
+      }
+    }
+    // Fallback: if no lines/paragraphs, split text into lines
+    if (lineObjs.length === 0 && text) {
+      lineObjs = text.split('\n').map((t, i) => ({ text: t, x: 0, y: i * 20 }));
+    }
+    // Optionally normalize/merge lines before column grouping
+    // (If you want to use normalizeOCR/mergePriceLinesWithItems, do it here per line)
+    // const normalizedObjs = lineObjs.map(l => ({...l, text: normalizeOCR(l.text)}));
+    // const mergedObjs = ... (if you want to merge price lines, etc)
+    return injectColumnBreaks(lineObjs);
   }
   if (extension === '.docx') {
     // Use Mammoth for DOCX files

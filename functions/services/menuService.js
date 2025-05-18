@@ -13,6 +13,8 @@ const mammoth = require('mammoth');
 const xlsx = require('xlsx');
 const vision = require('@google-cloud/vision');
 const { Configuration, OpenAIApi } = require('openai');
+const { Storage } = require('@google-cloud/storage');
+const storage = new Storage();
 
 const visionClient = new vision.ImageAnnotatorClient();
 const OPENAI_API_KEY = functions.config().openai.key;
@@ -131,7 +133,8 @@ const processMenuUpload = functions
       return;
     }
     const tempFilePath = path.join(os.tmpdir(), fileName);
-    await uploadToStorage(fileBucket, filePath, tempFilePath, undefined);
+    // Download the file from Cloud Storage to the local /tmp directory
+    await storage.bucket(fileBucket).file(filePath).download({ destination: tempFilePath });
     let rawText = '';
     let rawTextPath = undefined;
     try {

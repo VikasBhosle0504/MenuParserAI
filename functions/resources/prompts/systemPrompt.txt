@@ -16,28 +16,28 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
       {
         "id": number,                  // auto-generated, starts at 1
         "title": "Category Name",
-        "description": "Description or null"
+        "description": "Description or empty string" // default empty string
       }
     ],
     "sub_category": [
       {
         "id": number,                  // auto-generated, starts at 1
         "catId": categoryId,
-        "title": "Subcategory Name",
-        "description": "Description or null"
+        "title": "Subcategory Name",   // default empty string
+        "description": "Description"  // default empty string
       }
     ],
     "items": [
       {
         "itemId": number,              // auto-generated, starts at 1
-        "subCatId": subcategoryId,
+        "subCatId": subcategoryId,     // default 0
         "title": "Item Name",
         "price": double,               // always double; default 0.00
         "variantAvailable": 0 or 1,
         "variants": [                   // empty array if variantAvailable is 0
           {
             "variantTitle": "Variant name",
-            "description": "Description or null",
+            "description": "Description or empty string",
             "price": double            // default 0.00
           }
         ],
@@ -50,9 +50,9 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
             "choices": [              // empty array if commonChoicePriceAvailable is 0
               {
                 "title": "Choice name",
-                "description": "Description or null",
-                "allergenInfo": "e.g., milk, nuts or null",
-                "dietary": "e.g., veg, vegan or null",
+                "description": "Description or empty string", // default empty string
+                "allergenInfo": "e.g., milk, nuts or empty string", // default empty string
+                "dietary": "e.g., veg, vegan or empty string", // default empty string
                 "price": double       // default 0.00
               }
             ]

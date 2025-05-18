@@ -3,16 +3,40 @@
 // Used by services for text normalization, merging, and chunking.
 
 /**
- * Inserts column break markers every 40 lines in the text.
- * @param {string} text - The input text.
- * @returns {string} The text with column breaks inserted.
+ * Groups lines into columns based on x coordinate, sorts each column by y, and joins with column breaks.
+ * @param {Array<{text: string, x: number, y: number}>} lines - Array of line objects with text, x, y.
+ * @param {number} [xThreshold=150] - Max x distance to consider lines in the same column.
+ * @returns {string} Menu text grouped by columns, separated by '### COLUMN BREAK ###'.
+ *
+ * Example input:
+ * [
+ *   { text: 'Starters', x: 100, y: 10 },
+ *   { text: 'Spicy Lemon', x: 100, y: 50 },
+ *   { text: 'Main', x: 400, y: 10 },
+ *   { text: 'Zesty Prawns', x: 400, y: 50 }
+ * ]
  */
-function injectColumnBreaks(text) {
-  const lines = text.split('\n');
-  for (let i = 40; i < lines.length; i += 40) {
-    lines.splice(i, 0, '### COLUMN BREAK ###');
+function injectColumnBreaks(lines, xThreshold = 150) {
+  if (!Array.isArray(lines) || lines.length === 0) return '';
+  // Sort lines by x, then y for stable grouping
+  const sorted = [...lines].sort((a, b) => a.x - b.x || a.y - b.y);
+  // Group lines into columns by x coordinate
+  const columns = [];
+  for (const line of sorted) {
+    // Try to find a column this line belongs to
+    let col = columns.find(col => Math.abs(col.x - line.x) <= xThreshold);
+    if (!col) {
+      col = { x: line.x, lines: [] };
+      columns.push(col);
+    }
+    col.lines.push(line);
   }
-  return lines.join('\n');
+  // Sort lines in each column by y (top to bottom)
+  const columnBlocks = columns.map(col =>
+    col.lines.sort((a, b) => a.y - b.y).map(l => l.text).join('\n')
+  );
+  // Join columns with column break
+  return columnBlocks.join('\n### COLUMN BREAK ###\n');
 }
 
 /**

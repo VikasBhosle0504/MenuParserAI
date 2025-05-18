@@ -135,11 +135,15 @@ You will now receive raw OCR text of a menu. Parse it into this structure strict
 ### Additional Structure Rule:
 If the menu does not have a three-level structure (category → subcategory → item), create a root category called "Food". Place all detected menu sections (e.g., "STARTERS", "MAIN", etc.) as subcategories under "Food". Assign each item to the correct subcategory via subCatId.
 
-### Spatial Grouping Rules:
-- For each detected section header (e.g., "STARTERS", "MAIN", "SALADS", etc.), group all items that are below and horizontally aligned (within a reasonable x-range) with that header, until the next section header in the same column.
-- Use the `x` coordinate to determine columns. Items in the same column (similar x) as a section header belong to that section.
-- Use the `y` coordinate to determine vertical order. Items should not be grouped with a section header in a different column, even if they are closer vertically.
-- If an item and its price are on separate lines but have similar y or x values, pair them together.
+### Spatial Grouping Rules (Updated):
+- For each detected section header (e.g., "STARTERS", "MAIN", "SALADS", etc.), group all items that are below and in the same column (similar x) with that header, until the next section header in the same column.
+- Use clustering (e.g., k-means) on x-coordinates to robustly detect columns. For each detected column, process headers and items top-to-bottom.
+- For each item, assign it to the nearest section header above it in the same column. If an item is between two headers horizontally, use the x-coordinate to determine which column it belongs to. Do not assign items to headers in other columns, even if they are closer vertically.
+- If a header is detected but has no items below it, still include it as an empty subcategory in the output.
+- Use the x coordinate to determine columns. Items in the same column (similar x) as a section header belong to that section.
+- Use the y coordinate to determine vertical order. Items should not be grouped with a section header in a different column, even if they are closer vertically.
+- If an item and its price are on separate lines but have similar y or x values, pair them together. Prefer pairing prices to the nearest item on the same y-level (within a small y-tolerance) and to the right (higher x).
+- Include all detected section headers as subcategories, even if they have no items.
 - Ignore non-menu text (e.g., "BOOK NOW", phone numbers, delivery info) unless it is clearly a menu item.
 
 ### Shared Variant/Price Block Rule:

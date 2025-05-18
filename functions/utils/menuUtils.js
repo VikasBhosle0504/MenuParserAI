@@ -18,26 +18,42 @@
  */
 function injectColumnBreaks(lines, xThreshold = 150) {
   if (!Array.isArray(lines) || lines.length === 0) return '';
-  // Sort lines by x, then y for stable grouping
-  const sorted = [...lines].sort((a, b) => a.x - b.x || a.y - b.y);
-  // Group lines into columns by x coordinate
+
+  // Step 1: Group into columns based on x proximity
   const columns = [];
-  for (const line of sorted) {
-    // Try to find a column this line belongs to
-    let col = columns.find(col => Math.abs(col.x - line.x) <= xThreshold);
-    if (!col) {
-      col = { x: line.x, lines: [] };
-      columns.push(col);
+
+  for (const line of lines) {
+    let found = false;
+    for (const col of columns) {
+      const avgX = col.lines.reduce((sum, l) => sum + l.x, 0) / col.lines.length;
+      if (Math.abs(avgX - line.x) <= xThreshold) {
+        col.lines.push(line);
+        found = true;
+        break;
+      }
     }
-    col.lines.push(line);
+    if (!found) {
+      columns.push({ lines: [line] });
+    }
   }
-  // Sort lines in each column by y (top to bottom)
-  const columnBlocks = columns.map(col =>
-    col.lines.sort((a, b) => a.y - b.y).map(l => l.text).join('\n')
-  );
-  // Join columns with column break
+
+  // Step 2: Sort each column top-to-bottom
+  for (const col of columns) {
+    col.lines.sort((a, b) => a.y - b.y);
+  }
+
+  // Step 3: Sort columns left-to-right using average X
+  columns.sort((a, b) => {
+    const avgX1 = a.lines.reduce((sum, l) => sum + l.x, 0) / a.lines.length;
+    const avgX2 = b.lines.reduce((sum, l) => sum + l.x, 0) / b.lines.length;
+    return avgX1 - avgX2;
+  });
+
+  // Step 4: Join all lines
+  const columnBlocks = columns.map(col => col.lines.map(l => l.text).join('\n'));
   return columnBlocks.join('\n### COLUMN BREAK ###\n');
 }
+
 
 /**
  * Normalizes OCR text by fixing spacing and line breaks.
@@ -61,13 +77,13 @@ function mergePriceLinesWithItems(text) {
   const lines = text.split('\n');
   const merged = [];
 
+  const isLikelyPrice = (line) => /^(\$?\d+(\.\d{1,2})?)$/.test(line.trim());
+
   for (let i = 0; i < lines.length; i++) {
     const current = lines[i].trim();
     const prev = merged[merged.length - 1] || '';
 
-    const isPriceOnly = /^[\d\s/.]+$/.test(current) && /\d/.test(current);
-
-    if (isPriceOnly && prev && !/^\d/.test(prev)) {
+    if (isLikelyPrice(current) && prev && !isLikelyPrice(prev)) {
       merged[merged.length - 1] = `${prev} ${current}`;
     } else {
       merged.push(current);
@@ -76,6 +92,7 @@ function mergePriceLinesWithItems(text) {
 
   return merged.join('\n');
 }
+
 
 module.exports = {
   injectColumnBreaks,

@@ -102,11 +102,26 @@ async function extractTextFromFile(filePath, extension) {
     if (lineObjs.length === 0 && text) {
       lineObjs = text.split('\n').map((t, i) => ({ text: t, x: 0, y: i * 20 }));
     }
+
+    const mergedLineObjs = [];
+    for (let i = 0; i < lineObjs.length; i++) {
+      const current = lineObjs[i];
+      const prev = mergedLineObjs[mergedLineObjs.length - 1];
+
+      const isPriceOnly = /^(\$?\d+(\.\d{1,2})?)$/.test(current.text.trim());
+
+      if (isPriceOnly && prev && !/^(\$?\d+(\.\d{1,2})?)$/.test(prev.text.trim())) {
+        // Merge price into previous line's text
+        prev.text += ` ${current.text}`;
+      } else {
+        mergedLineObjs.push({ ...current });
+      }
+    }
     // Optionally normalize/merge lines before column grouping
     // (If you want to use normalizeOCR/mergePriceLinesWithItems, do it here per line)
     // const normalizedObjs = lineObjs.map(l => ({...l, text: normalizeOCR(l.text)}));
     // const mergedObjs = ... (if you want to merge price lines, etc)
-    return injectColumnBreaks(lineObjs);
+    return injectColumnBreaks(mergedLineObjs);
   }
   if (extension === '.docx') {
     // Use Mammoth for DOCX files

@@ -64,7 +64,32 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
   }
 }
 
+### Important Variant Pricing Rule:
+If an item has any variants, the item's `price` field must always be `0.00`. All actual prices must be listed only in the `variants` array.
 
+#### Example (Correct):
+{
+  "title": "Coke",
+  "price": 0.00,
+  "variantAvailable": 1,
+  "variants": [
+    { "variantTitle": "Small", "price": 1.99 }
+  ]
+}
+
+#### Example (Incorrect):
+{
+  "title": "Coke",
+  "price": 1.99,
+  "variantAvailable": 1,
+  "variants": [
+    { "variantTitle": "Small", "price": 1.99 }
+  ]
+}
+
+### Options Pricing Rule:
+- If `commonChoicePriceAvailable` is 1, the `price` field in the option object is the price for all choices, and each choice's `price` should be 0.
+- If `commonChoicePriceAvailable` is 0, each choice must have its own `price` field, and the option's `price` should be 0.
 
 ### Hard Rules:
 1. All id, catId, subCatId, and itemId must be auto-generated integers starting from 1.
@@ -73,13 +98,14 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
    If variantAvailable is 1 → variants must contain data.
 4. If optionsAvailable is 0 → options: []
    If optionsAvailable is 1 → options must contain data.
-5. If commonChoicePriceAvailable is 0 → choices: []
-   If commonChoicePriceAvailable is 1 → choices must contain data.
 6. Maintain correct catId and subCatId references between sections.
 7. Always return valid, fully-formed JSON with proper nesting and consistent structure as described above.
 8. Every item must include a `description` field. If no description is present, set it to an empty string.
 9. If an item has variants, set the item's price to 0.00 and put all prices in the variants array.
-
+10. Every item must have a valid subCatId that points to an existing subcategory (never 0).
+11. Every subcategory must have a valid catId that points to an existing category (never 0).
+12. Exclude any category that has no subcategories.
+13. Exclude any subcategory that has no items.
 
 ### Auto-naming & Pricing Rules:
 
@@ -88,8 +114,6 @@ Your job is to convert raw OCR or extracted text (from scanned menus, PDFs, or i
 - If add-ons have no names but prices: name them "option1", "option2", etc.
 - Shared variants (e.g., Small/Medium/Large before multiple items): apply same variants to each item listed after.
 - Grouped prices (e.g., "Per piece cake - 1.99" then list of cakes): make the first line an item, rest are options with the same price.
-
-
 
 ### Input Format Update:
 You will receive an array of objects, each with:
@@ -106,8 +130,6 @@ Example input:
 
 Use the coordinates to group items, prices, and categories as they appear visually on the menu. Infer grouping, columns, and proximity as you would visually.
 
-
-
 You will now receive raw OCR text of a menu. Parse it into this structure strictly following the rules.
 
 ### Additional Structure Rule:
@@ -119,3 +141,68 @@ If the menu does not have a three-level structure (category → subcategory → 
 - Use the `y` coordinate to determine vertical order. Items should not be grouped with a section header in a different column, even if they are closer vertically.
 - If an item and its price are on separate lines but have similar y or x values, pair them together.
 - Ignore non-menu text (e.g., "BOOK NOW", phone numbers, delivery info) unless it is clearly a menu item.
+
+### Shared Variant/Price Block Rule:
+- If a block of variants (e.g., "SMALL $1.00", "MEDIUM $1.50", "LARGE $2.00") appears at the top of a section, apply those variants to each item listed after, until the next section or variant block.
+- If a line like "PIE BY THE SLICE $2.50" appears before a list of pies, treat "PIE BY THE SLICE" as the main item and the list below as options, all sharing the same price.
+- Use x/y coordinates and section headers to determine which items a variant or price block applies to.
+
+
+### Reminder:
+Never put a non-zero price in the `price` field of an item that has variants. All prices must be in the `variants` array.
+
+### Multi-Price/Variant Rule:
+- If an item line or its associated lines contain multiple prices (e.g., '9 40', 'old fashioned 12 / manhatttan 13 9'), treat each price as a separate variant.
+- If variant names are present (e.g., 'old fashioned', 'manhatttan'), pair each name with its price. If not, use 'variant1', 'variant2', etc.
+- If a price appears after a description or in a separate line, associate it as a variant or as the main price if there is only one.
+
+#### Example 1: Multiple Prices Without Names
+Input OCR:
+[
+  { "text": "MIRASSOU, CA", ... },
+  { "text": "9 40", ... }
+]
+Output:
+{
+  "title": "MIRASSOU, CA",
+  "price": 0.00,
+  "variantAvailable": 1,
+  "variants": [
+    { "variantTitle": "variant1", "price": 9 },
+    { "variantTitle": "variant2", "price": 40 }
+  ]
+}
+
+#### Example 2: Multiple Named Variants
+Input OCR:
+[
+  { "text": "1792 RIDGEMOUNT", ... },
+  { "text": "old fashioned 12 / manhatttan 13 9", ... }
+]
+Output:
+{
+  "title": "1792 RIDGEMOUNT",
+  "price": 0.00,
+  "variantAvailable": 1,
+  "variants": [
+    { "variantTitle": "old fashioned", "price": 12 },
+    { "variantTitle": "manhatttan", "price": 13 },
+    { "variantTitle": "variant3", "price": 9 }
+  ]
+}
+
+#### Example 3: Price After Description
+Input OCR:
+[
+  { "text": "aged rum, antica formula, maraschino syrup, mole bitters, oj wash 10", ... }
+]
+Output:
+{
+  "title": "SALOON'S BROWN DERBY",
+  "description": "aged rum, antica formula, maraschino syrup, mole bitters, oj wash",
+  "price": 10
+}
+
+### Generalization Rule:
+If you encounter a menu structure, layout, or pattern not explicitly covered by the above rules or examples, use your best judgment to preserve all information and fit it into the most appropriate part of the JSON structure. Always prefer to keep extra information (as description, notes, or options) rather than discard it. The goal is to make the output as complete and useful as possible for any menu type.
+

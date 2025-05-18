@@ -419,6 +419,32 @@
                     priceSpan.textContent = formatPrice(item.price);
                     itemElement.appendChild(priceSpan);
                   }
+                  // Options (if any)
+                  if (item.optionsAvailable && item.options.length > 0) {
+                    const optionsList = document.createElement('div');
+                    optionsList.className = 'variants-list';
+                    item.options.forEach(option => {
+                      const optionElement = document.createElement('div');
+                      optionElement.className = 'variant-item';
+                      const optionTitle = document.createElement('span');
+                      optionTitle.className = 'variant-title';
+                      optionTitle.textContent = option.optTitle;
+                      if (option.commonChoicePriceAvailable) {
+                        const optionPrice = document.createElement('span');
+                        optionPrice.className = 'price';
+                        optionPrice.textContent = formatPrice(option.price);
+                        optionElement.appendChild(optionPrice);
+                      }
+                      optionElement.appendChild(optionTitle);
+                      // Choices under option
+                      if (option.choices && option.choices.length > 0) {
+                        const choicesList = renderChoices(option.choices);
+                        if (choicesList) optionElement.appendChild(choicesList);
+                      }
+                      optionsList.appendChild(optionElement);
+                    });
+                    itemElement.appendChild(optionsList);
+                  }
                   subcategoryContent.appendChild(itemElement);
                 });
                 subcategorySection.appendChild(subcategoryHeader);

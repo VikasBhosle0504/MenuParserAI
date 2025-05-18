@@ -133,7 +133,7 @@ async function extractMenuJson(rawText) {
   const prompt = userPromptTemplate.replace('{{RAW_TEXT}}', JSON.stringify(rawText, null, 2));
   const sysContent = systemPrompt;
   const response = await openai.createChatCompletion({
-    model: 'gpt-4',
+    model: 'gpt-4-turbo',
     messages: [
       {role: 'system', content: sysContent},
       {role: 'user', content: prompt}

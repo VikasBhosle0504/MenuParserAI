@@ -23,6 +23,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const {DocumentProcessorServiceClient} = require('@google-cloud/documentai').v1;
+const { extractTextFromFile } = require('../utils/extractTextFromFile');
 
 // Import repositories and utils
 const { uploadToStorage, saveToFirestore } = require('../repositories/storageRepository');
@@ -40,88 +41,6 @@ const SUPPORTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.docx', '.xlsx']
 // Load prompt templates from resources
 const systemPrompt = fs.readFileSync(path.join(__dirname, '../resources/prompts/systemPrompt.txt'), 'utf8');
 const userPromptTemplate = fs.readFileSync(path.join(__dirname, '../resources/prompts/userPrompt.txt'), 'utf8');
-
-/**
- * Extracts text from a file using Document AI, Mammoth, or XLSX depending on the file extension.
- * @param {string} filePath - Path to the file.
- * @param {string} extension - File extension.
- * @returns {Promise<string>} Extracted text.
- */
-async function extractTextFromFile(filePath, extension) {
-  if ([".jpg", ".jpeg", ".png", ".pdf"].includes(extension)) {
-    // Use Google Document AI for image and PDF files
-    const projectId = 'aimenudigitiliser';
-    const location = 'us';
-    const processorId = 'd863107b0752665c';
-    const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
-    const imageFile = fs.readFileSync(filePath);
-    let mimeType = 'application/pdf';
-    if ([".jpg", ".jpeg", ".png"].includes(extension)) {
-      mimeType = 'image/jpeg';
-    }
-    const request = {
-      name,
-      rawDocument: {
-        content: imageFile,
-        mimeType,
-      },
-    };
-    const [result] = await documentaiClient.processDocument(request);
-    const {text, paragraphs, lines, tokens, entities, pages} = result.document;
-    // Extract lines with coordinates from Document AI result
-    // Fallback: use paragraphs if lines are not available
-    let lineObjs = [];
-    if (result.document.pages && result.document.pages.length > 0) {
-      for (const page of result.document.pages) {
-        // Use lines if available, else paragraphs
-        const blocks = page.lines && page.lines.length > 0 ? page.lines : (page.paragraphs || []);
-        for (const block of blocks) {
-          // Get text segment
-          let blockText = '';
-          if (block.layout && block.layout.textAnchor) {
-            const {textAnchor} = block.layout;
-            if (textAnchor.textSegments && textAnchor.textSegments.length > 0) {
-              for (const seg of textAnchor.textSegments) {
-                blockText += text.substring(seg.startIndex || 0, seg.endIndex);
-              }
-            }
-          }
-          // Get top-left x/y from bounding box
-          let x = 0, y = 0;
-          if (block.layout && block.layout.boundingPoly && block.layout.boundingPoly.vertices && block.layout.boundingPoly.vertices.length > 0) {
-            x = block.layout.boundingPoly.vertices[0].x || 0;
-            y = block.layout.boundingPoly.vertices[0].y || 0;
-          }
-          if (blockText.trim()) {
-            lineObjs.push({ text: blockText.trim(), x, y });
-          }
-        }
-      }
-    }
-    // Fallback: if no lines/paragraphs, split text into lines
-    if (lineObjs.length === 0 && text) {
-      lineObjs = text.split('\n').map((t, i) => ({ text: t, x: 0, y: i * 20 }));
-    }
-
-    // Return the raw OCR output as an array of objects with text and coordinates
-    return lineObjs;
-  }
-  if (extension === '.docx') {
-    // Use Mammoth for DOCX files
-    const data = await mammoth.extractRawText({ path: filePath });
-    return data.value;
-  }
-  if (extension === '.xlsx') {
-    // Use XLSX for Excel files
-    const workbook = xlsx.readFile(filePath);
-    let text = '';
-    workbook.SheetNames.forEach(sheet => {
-      text += xlsx.utils.sheet_to_csv(workbook.Sheets[sheet]) + '\n';
-    });
-    return text;
-  }
-  return '';
-}
 
 /**
  * Extracts structured menu JSON from raw text using OpenAI.

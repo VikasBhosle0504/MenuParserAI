@@ -1,3 +1,7 @@
-module.exports = require('./controllers');
+const controllers = require('./controllers');
 const { processHybridMenuUpload } = require('./services/hybridMenuService');
-exports.processHybridMenuUpload = processHybridMenuUpload; 
+
+module.exports = {
+  ...controllers,
+  processHybridMenuUpload
+}; 

@@ -4,13 +4,30 @@ const { Storage } = require('@google-cloud/storage');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const { extractTextFromFile } = require('./documentai'); // reuse your existing OCR logic
+const { extractTextFromFile } = require('../utils/extractTextFromFile');
 const { hybridModeExtractMenu } = require('./hybridResearch');
 
 const db = admin.firestore();
 const storage = new Storage();
 
 const SUPPORTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.docx', '.xlsx'];
+
+// Utility: Split text into chunks of maxLength characters, trying to split at newlines
+function splitIntoChunks(text, maxLength = 2000) {
+  const chunks = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = start + maxLength;
+    // Try to split at a newline if possible
+    if (end < text.length) {
+      let lastNewline = text.lastIndexOf('\n', end);
+      if (lastNewline > start) end = lastNewline;
+    }
+    chunks.push(text.slice(start, end));
+    start = end;
+  }
+  return chunks;
+}
 
 const processHybridMenuUpload = functions
   .region('us-central1')
@@ -44,7 +61,40 @@ const processHybridMenuUpload = functions
     }
     let menuJson = {};
     try {
-      menuJson = await hybridModeExtractMenu({ ocrData });
+      let mergedMenu = [];
+      let chunks = [];
+      if (Array.isArray(ocrData)) {
+        // If already an array (from OCR), join into a string for chunking
+        const text = ocrData.map(lineObj => lineObj.text).join('\n');
+        chunks = splitIntoChunks(text, 2000); // You can adjust 2000 as needed
+      } else {
+        // If string, split by column break first, then further chunk if needed
+        const colChunks = ocrData.split('### COLUMN BREAK ###');
+        for (const colChunk of colChunks) {
+          if (colChunk.trim().length === 0) continue;
+          const subChunks = splitIntoChunks(colChunk, 2000);
+          chunks.push(...subChunks);
+        }
+      }
+      for (const chunk of chunks) {
+        if (chunk.trim().length === 0) continue;
+        try {
+          // For hybridModeExtractMenu, we want to pass the chunk as ocrData (array of objects)
+          // So, if original ocrData was array, reconstruct the array for this chunk
+          let chunkOcrData = chunk.split('\n').map((text, i) => ({ text, x: 0, y: i * 20 }));
+          const chunkJson = await hybridModeExtractMenu({ ocrData: chunkOcrData });
+          if (chunkJson && Array.isArray(chunkJson.menu)) {
+            mergedMenu = mergedMenu.concat(chunkJson.menu);
+          } else if (Array.isArray(chunkJson)) {
+            mergedMenu = mergedMenu.concat(chunkJson);
+          } else if (chunkJson) {
+            mergedMenu.push(chunkJson);
+          }
+        } catch (err) {
+          console.error('Hybrid OpenAI extraction failed for chunk:', err);
+        }
+      }
+      menuJson = { menu: mergedMenu };
     } catch (err) {
       console.error('Hybrid OpenAI extraction failed:', err);
       fs.unlinkSync(tempFilePath);

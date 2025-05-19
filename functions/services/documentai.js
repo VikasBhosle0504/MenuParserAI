@@ -141,23 +141,54 @@ async function extractMenuJson(rawText) {
     temperature: 0.2,
     max_tokens: 4096
   });
-  const content = response.data.choices[0].message.content;
+  let content = response.data.choices[0].message.content;
+  console.log('GPT raw response:', content);
+
+  // Remove code block markers if present
+  let cleaned = content.replace(/```json|```/g, '').trim();
+
   // Try strict JSON parse
   try {
-    return JSON.parse(content);
+    return JSON.parse(cleaned);
   } catch (strictErr) {
-    // Try fuzzy match for JSON block
-    const match = content.match(/\{[\s\S]*\}/);
-    if (match) {
+    // Try fuzzy match for object
+    const objMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (objMatch) {
       try {
-        return JSON.parse(match[0]);
+        return JSON.parse(objMatch[0]);
       } catch (innerErr) {
-        console.error('Fuzzy JSON parse failed:', innerErr);
+        console.error('Fuzzy object JSON parse failed:', innerErr);
       }
     }
-    console.error('GPT response:', content);
+    // Try fuzzy match for array
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      try {
+        return JSON.parse(arrayMatch[0]);
+      } catch (innerErr) {
+        console.error('Fuzzy array JSON parse failed:', innerErr);
+      }
+    }
+    console.error('GPT response (unparsable):', cleaned);
     throw new Error('No valid JSON could be parsed from GPT response');
   }
+}
+
+// Utility: Split text into chunks of maxLength characters, trying to split at newlines
+function splitIntoChunks(text, maxLength = 2000) {
+  const chunks = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = start + maxLength;
+    // Try to split at a newline if possible
+    if (end < text.length) {
+      let lastNewline = text.lastIndexOf('\n', end);
+      if (lastNewline > start) end = lastNewline;
+    }
+    chunks.push(text.slice(start, end));
+    start = end;
+  }
+  return chunks;
 }
 
 /**
@@ -199,10 +230,22 @@ const processMenuUploadDocumentAI = functions
     let mergedMenu = [];
     let menuJson = {};
     try {
-      // If rawText is an array (layout-aware OCR), treat as a single chunk
-      const chunks = Array.isArray(rawText) ? [rawText] : rawText.split('### COLUMN BREAK ###');
+      let chunks = [];
+      if (Array.isArray(rawText)) {
+        // If already an array (from OCR), join into a string for chunking
+        const text = rawText.map(lineObj => lineObj.text).join('\n');
+        chunks = splitIntoChunks(text, 2000); // You can adjust 2000 as needed
+      } else {
+        // If string, split by column break first, then further chunk if needed
+        const colChunks = rawText.split('### COLUMN BREAK ###');
+        for (const colChunk of colChunks) {
+          if (colChunk.trim().length === 0) continue;
+          const subChunks = splitIntoChunks(colChunk, 2000);
+          chunks.push(...subChunks);
+        }
+      }
       for (const chunk of chunks) {
-        if ((Array.isArray(chunk) && chunk.length === 0) || (typeof chunk === 'string' && chunk.trim().length === 0)) continue;
+        if (chunk.trim().length === 0) continue;
         try {
           const chunkJson = await extractMenuJson(chunk);
           // Merge menu arrays or objects

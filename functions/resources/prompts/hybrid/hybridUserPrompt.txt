@@ -1,0 +1,9 @@
+You are a menu parser.
+
+Extract structured restaurant menu data from the following text and return valid, clean JSON.
+
+
+Text:
+"""
+{{RAW_TEXT}}
+""" 

@@ -12,7 +12,58 @@ const debugHybridRawTextContent = document.getElementById('debugHybridRawTextCon
 const closeDebugHybridRawText = document.getElementById('closeDebugHybridRawText');
 const copyHybridRawTextBtn = document.getElementById('copyHybridRawTextBtn');
 
-// List all files in debug_hybrid/ folder
+let debugFilesData = [];
+let debugPageSize = 10;
+let debugCurrentPage = 1;
+const debugPaginationControls = document.createElement('div');
+debugPaginationControls.id = 'debugPaginationControls';
+debugPaginationControls.style.display = 'flex';
+debugPaginationControls.style.justifyContent = 'center';
+debugPaginationControls.style.gap = '12px';
+debugHybridList.parentNode.appendChild(debugPaginationControls);
+
+function renderDebugListPage() {
+  debugHybridList.innerHTML = '';
+  const startIdx = (debugCurrentPage - 1) * debugPageSize;
+  const pageItems = debugFilesData.slice(startIdx, startIdx + debugPageSize);
+  if (pageItems.length === 0) {
+    debugHybridList.innerHTML = '<div style="color:var(--muted);padding:12px;">No debug files found.</div>';
+    debugPaginationControls.innerHTML = '';
+    return;
+  }
+  pageItems.forEach(({ itemRef, fileName }) => {
+    const fileDiv = document.createElement('div');
+    fileDiv.className = 'card debug-file-card shadow-sm border-0 p-2 mb-2';
+    fileDiv.innerHTML = `<div class="d-flex align-items-center justify-content-between">
+      <span>${fileName}</span>
+      <button class="btn btn-outline-primary btn-sm" data-filename="${fileName}">View</button>
+    </div>`;
+    fileDiv.querySelector('button').onclick = () => showHybridRawText(itemRef, fileName);
+    debugHybridList.appendChild(fileDiv);
+  });
+  // Pagination controls
+  debugPaginationControls.innerHTML = '';
+  if (debugCurrentPage > 1) {
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = 'Previous';
+    prevBtn.className = 'btn btn-outline-primary btn-sm';
+    prevBtn.onclick = () => { debugCurrentPage--; renderDebugListPage(); };
+    debugPaginationControls.appendChild(prevBtn);
+  }
+  if (debugFilesData.length > debugCurrentPage * debugPageSize) {
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next';
+    nextBtn.className = 'btn btn-outline-primary btn-sm';
+    nextBtn.onclick = () => { debugCurrentPage++; renderDebugListPage(); };
+    debugPaginationControls.appendChild(nextBtn);
+  }
+  const pageInfo = document.createElement('span');
+  pageInfo.textContent = `Page ${debugCurrentPage}`;
+  pageInfo.style.alignSelf = 'center';
+  pageInfo.style.margin = '0 8px';
+  debugPaginationControls.appendChild(pageInfo);
+}
+
 async function loadHybridDebugFiles() {
   debugHybridList.innerHTML = '<div style="color:var(--muted);padding:12px;">Loading debug files...</div>';
   try {
@@ -20,22 +71,15 @@ async function loadHybridDebugFiles() {
     const res = await listRef.listAll();
     if (res.items.length === 0) {
       debugHybridList.innerHTML = '<div style="color:var(--muted);padding:12px;">No debug files found.</div>';
+      debugPaginationControls.innerHTML = '';
       return;
     }
-    debugHybridList.innerHTML = '';
-    for (const itemRef of res.items) {
-      const fileName = itemRef.name;
-      const fileDiv = document.createElement('div');
-      fileDiv.className = 'card debug-file-card shadow-sm border-0 p-2 mb-2';
-      fileDiv.innerHTML = `<div class="d-flex align-items-center justify-content-between">
-        <span>${fileName}</span>
-        <button class="btn btn-outline-primary btn-sm" data-filename="${fileName}">View</button>
-      </div>`;
-      fileDiv.querySelector('button').onclick = () => showHybridRawText(itemRef, fileName);
-      debugHybridList.appendChild(fileDiv);
-    }
+    debugFilesData = res.items.map(itemRef => ({ itemRef, fileName: itemRef.name }));
+    debugCurrentPage = 1;
+    renderDebugListPage();
   } catch (err) {
     debugHybridList.innerHTML = '<div style="color:red;padding:12px;">Failed to load debug files.</div>';
+    debugPaginationControls.innerHTML = '';
   }
 }
 

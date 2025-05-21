@@ -18,6 +18,20 @@ const menuDetails = document.getElementById('menuDetails');
 const menuJson = document.getElementById('menuJson');
 const closeMenuDetails = document.getElementById('closeMenuDetails');
 
+// Pagination state
+let pageSize = 10;
+let menuCursors = [];
+let currentPage = 0;
+let lastSnapshot = null;
+
+// Add pagination controls
+const paginationControls = document.createElement('div');
+paginationControls.id = 'paginationControls';
+paginationControls.style.display = 'flex';
+paginationControls.style.justifyContent = 'center';
+paginationControls.style.gap = '12px';
+menusList.parentNode.appendChild(paginationControls);
+
 function uploadHandler(e) {
   e.preventDefault();
   const file = fileInput.files[0];
@@ -84,16 +98,36 @@ function pollForProcessedMenu(docId, attempt) {
 }
 
 // List parsed menus from Firestore
-async function loadMenus() {
+async function loadMenus(direction = null) {
   menusList.innerHTML = '<div style="color:var(--muted);padding:12px;">Loading menus...</div>';
+  let query = db.collection('menus_documentai').orderBy('createdAt', 'desc').limit(pageSize);
+  if (direction === 'next' && lastSnapshot) {
+    query = query.startAfter(lastSnapshot);
+  } else if (direction === 'prev' && currentPage > 1) {
+    // Go back to the cursor for the previous page
+    query = query.startAfter(menuCursors[currentPage - 2]);
+  }
   try {
-    const snapshot = await db.collection('menus_documentai').orderBy('createdAt', 'desc').get();
+    const snapshot = await query.get();
     if (snapshot.empty) {
       menusList.innerHTML = '<div style="color:var(--muted);padding:12px;">No parsed menus found.</div>';
+      paginationControls.innerHTML = '';
       return;
     }
     menusList.innerHTML = '';
-    snapshot.forEach(doc => {
+    let docs = snapshot.docs;
+    // Save cursor for this page
+    if (direction === 'next') {
+      currentPage++;
+      menuCursors[currentPage - 1] = lastSnapshot;
+    } else if (direction === 'prev') {
+      currentPage--;
+    } else {
+      currentPage = 1;
+      menuCursors = [];
+    }
+    lastSnapshot = docs[docs.length - 1];
+    docs.forEach(doc => {
       const data = doc.data();
       const card = document.createElement('div');
       card.className = 'card menu-card shadow-sm border-0';
@@ -132,8 +166,31 @@ async function loadMenus() {
       card.addEventListener('click', () => showMenuDetails(data));
       menusList.appendChild(card);
     });
+    // Pagination controls
+    paginationControls.innerHTML = '';
+    if (currentPage > 1) {
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.className = 'btn btn-outline-primary btn-sm';
+      prevBtn.onclick = () => loadMenus('prev');
+      paginationControls.appendChild(prevBtn);
+    }
+    if (docs.length === pageSize) {
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'btn btn-outline-primary btn-sm';
+      nextBtn.onclick = () => loadMenus('next');
+      paginationControls.appendChild(nextBtn);
+    }
+    // Show page number
+    const pageInfo = document.createElement('span');
+    pageInfo.textContent = `Page ${currentPage}`;
+    pageInfo.style.alignSelf = 'center';
+    pageInfo.style.margin = '0 8px';
+    paginationControls.appendChild(pageInfo);
   } catch (err) {
     menusList.innerHTML = '<div style="color:red;">Failed to load menus.</div>';
+    paginationControls.innerHTML = '';
   }
 }
 

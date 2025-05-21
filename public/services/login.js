@@ -33,12 +33,6 @@ loginForm.addEventListener('submit', function(e) {
       const permissions = userDoc.exists && userDoc.data().permissions ? userDoc.data().permissions : null;
       // List of possible pages (should match NAV_LINKS in permissions.js)
       const pages = [
-        'app.html',
-        'debug.html',
-        'documentindex.html',
-        'debug_documentai.html',
-        'hybriduploadmenu.html',
-        'debug_hybrid.html',
         'visionai.html',
         'visionaiocrtexts.html',
         'documentai.html',
@@ -48,7 +42,7 @@ loginForm.addEventListener('submit', function(e) {
       ];
       let redirectPage = 'visionai.html'; // fallback
       if (role === 'admin') {
-        redirectPage = 'app.html';
+        redirectPage = 'visionai.html';
       } else if (role === 'viewer' && permissions && typeof permissions === 'object') {
         const allowed = pages.find(page => permissions[page] === 1);
         if (allowed) redirectPage = allowed;

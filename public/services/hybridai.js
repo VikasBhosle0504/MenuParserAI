@@ -16,6 +16,20 @@ const hybridMenuDetails = document.getElementById('hybridMenuDetails');
 const hybridMenuJson = document.getElementById('hybridMenuJson');
 const closeHybridMenuDetails = document.getElementById('closeHybridMenuDetails');
 
+// Pagination state
+let pageSize = 10;
+let menuCursors = [];
+let currentPage = 0;
+let lastSnapshot = null;
+
+// Add pagination controls
+const paginationControls = document.createElement('div');
+paginationControls.id = 'paginationControls';
+paginationControls.style.display = 'flex';
+paginationControls.style.justifyContent = 'center';
+paginationControls.style.gap = '12px';
+hybridMenusList.parentNode.appendChild(paginationControls);
+
 function createToggleIcon() {
   const icon = document.createElement('span');
   icon.className = 'toggle-icon';
@@ -242,16 +256,34 @@ function pollForProcessedHybridMenu(docId, attempt) {
 }
 
 // List parsed hybrid menus from Firestore
-async function loadHybridMenus() {
+async function loadHybridMenus(direction = null) {
   hybridMenusList.innerHTML = '<div style="color:var(--muted);padding:12px;">Loading hybrid menus...</div>';
+  let query = db.collection('menus_hybrid').orderBy('createdAt', 'desc').limit(pageSize);
+  if (direction === 'next' && lastSnapshot) {
+    query = query.startAfter(lastSnapshot);
+  } else if (direction === 'prev' && currentPage > 1) {
+    query = query.startAfter(menuCursors[currentPage - 2]);
+  }
   try {
-    const snapshot = await db.collection('menus_hybrid').orderBy('createdAt', 'desc').get();
+    const snapshot = await query.get();
     if (snapshot.empty) {
       hybridMenusList.innerHTML = '<div style="color:var(--muted);padding:12px;">No parsed hybrid menus found.</div>';
+      paginationControls.innerHTML = '';
       return;
     }
     hybridMenusList.innerHTML = '';
-    snapshot.forEach(doc => {
+    let docs = snapshot.docs;
+    if (direction === 'next') {
+      currentPage++;
+      menuCursors[currentPage - 1] = lastSnapshot;
+    } else if (direction === 'prev') {
+      currentPage--;
+    } else {
+      currentPage = 1;
+      menuCursors = [];
+    }
+    lastSnapshot = docs[docs.length - 1];
+    docs.forEach(doc => {
       const data = doc.data();
       const card = document.createElement('div');
       card.className = 'card menu-card shadow-sm border-0';
@@ -263,7 +295,6 @@ async function loadHybridMenus() {
         const date = new Date(data.createdAt.seconds * 1000);
         createdAtText = `<div class=\"menu-time\">📅 ${date.toLocaleString()}</div>`;
       }
-      // Thumbnail logic
       let thumbHtml = '';
       if (data.sourceFilePath && data.sourceFilePath.match(/\.(jpg|jpeg|png)$/i)) {
         thumbHtml = `<img src='' alt='thumb' class='menu-thumb me-3 rounded' style='width:48px;height:48px;object-fit:cover;display:none;' />`;
@@ -279,7 +310,6 @@ async function loadHybridMenus() {
           <span class=\"menu-card-arrow ms-2\">&#8594;</span>
         </div>
       `;
-      // If thumbnail, fetch URL
       if (thumbHtml) {
         const img = card.querySelector('.menu-thumb');
         storage.ref(data.sourceFilePath).getDownloadURL().then(url => {
@@ -290,8 +320,29 @@ async function loadHybridMenus() {
       card.onclick = () => showHybridMenuDetails(data);
       hybridMenusList.appendChild(card);
     });
+    paginationControls.innerHTML = '';
+    if (currentPage > 1) {
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = 'Previous';
+      prevBtn.className = 'btn btn-outline-primary btn-sm';
+      prevBtn.onclick = () => loadHybridMenus('prev');
+      paginationControls.appendChild(prevBtn);
+    }
+    if (docs.length === pageSize) {
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = 'Next';
+      nextBtn.className = 'btn btn-outline-primary btn-sm';
+      nextBtn.onclick = () => loadHybridMenus('next');
+      paginationControls.appendChild(nextBtn);
+    }
+    const pageInfo = document.createElement('span');
+    pageInfo.textContent = `Page ${currentPage}`;
+    pageInfo.style.alignSelf = 'center';
+    pageInfo.style.margin = '0 8px';
+    paginationControls.appendChild(pageInfo);
   } catch (err) {
     hybridMenusList.innerHTML = '<div style="color:red;padding:12px;">Failed to load hybrid menus.</div>';
+    paginationControls.innerHTML = '';
   }
 }
 

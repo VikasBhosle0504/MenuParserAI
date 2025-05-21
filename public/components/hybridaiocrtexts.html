@@ -19,7 +19,7 @@
       </nav>
       <section id="debugHybridListSection">
         <h2 class="h5 mb-3">Hybrid Debug Raw Text Files</h2>
-        <div id="debugHybridList" class="d-flex flex-column gap-3"></div>
+        <div id="debugHybridList"></div>
       </section>
       <div id="debugHybridRawTextModal" class="hidden">
         <div class="menu-modal-content">
@@ -30,6 +30,11 @@
         </div>
       </div>
     </div>
+    <script src="../services/firebaseConfig.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="../services/hybridaiocrtexts.js"></script>
     <script src="../services/permissions.js"></script>
   </body>

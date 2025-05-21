@@ -17,6 +17,12 @@ documentindex.html
 index.html
 
 public/documentai:
+visionai.html
+visionaiocrtexts.html
+documentai.html
+documentaiocrtexts.html
+hybridai.html
+hybridaiocrtexts.html
 
 public/services:
 app.js

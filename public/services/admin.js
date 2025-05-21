@@ -9,12 +9,12 @@ const auth = firebase.auth();
 let currentUserRole = null;
 
 const NAV_LINKS = [
-  { href: 'app.html', label: '🏠 Parsed Menus', roles: ['admin', 'viewer'] },
-  { href: 'debug.html', label: '📝 Debug Raw Texts', roles: ['admin', 'viewer'] },
-  { href: 'documentindex.html', label: '📄 Document AI Menus', roles: ['admin', 'viewer'] },
-  { href: 'debug_documentai.html', label: '🤖 Document AI Debug Raw Texts', roles: ['admin', 'viewer'] },
-  { href: 'hybriduploadmenu.html', label: '🧬 Hybrid Upload Menu', roles: ['admin', 'viewer'] },
-  { href: 'debug_hybrid.html', label: '🧪 Hybrid Debug Raw Texts', roles: ['admin', 'viewer'] },
+  { href: 'visionai.html', label: '🏠 Using Vision AI', roles: ['admin', 'viewer'] },
+  { href: 'visionaiocrtexts.html', label: '📝 Vision AI OCR Texts', roles: ['admin', 'viewer'] },
+  { href: 'documentai.html', label: '📄 Using Document AI', roles: ['admin', 'viewer'] },
+  { href: 'documentaiocrtexts.html', label: '🤖 Document AI OCR Texts', roles: ['admin', 'viewer'] },
+  { href: 'hybridai.html', label: '🧬 Using Hybrid', roles: ['admin', 'viewer'] },
+  { href: 'hybridaiocrtexts.html', label: '�� Hybrid OCR Texts', roles: ['admin', 'viewer'] },
   { href: 'admin.html', label: '👤 Admin Panel', roles: ['admin'] }
 ];
 
@@ -95,7 +95,7 @@ auth.onAuthStateChanged(async function(user) {
     currentUserRole = userDoc.exists && userDoc.data().role ? userDoc.data().role : 'viewer';
     renderNavLinks(currentUserRole);
     if (currentUserRole !== 'admin') {
-      window.location.href = 'app.html';
+      window.location.href = 'visionai.html';
       return;
     }
     loadUsers();
@@ -117,7 +117,7 @@ const createUserPermissionsDiv = document.createElement('div');
 createUserPermissionsDiv.className = 'col-12';
 createUserPermissionsDiv.innerHTML = '<label style="font-weight:600;">Viewer Page Permissions:</label><div id="createUserPerms" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">' +
   NAV_LINKS.filter(l => l.roles.includes('viewer')).map(link =>
-    `<label style='font-weight:normal;'><input type='checkbox' class='create-perm-checkbox' data-file='${link.href}' ${link.href === 'documentindex.html' ? 'checked' : ''}/> ${link.label}</label>`
+    `<label style='font-weight:normal;'><input type='checkbox' class='create-perm-checkbox' data-file='${link.href}' ${link.href === 'documentai.html' ? 'checked' : ''}/> ${link.label}</label>`
   ).join('') + '</div>';
 // Insert before the submit button
 const createUserFormRows = createUserForm.querySelectorAll('.col-auto, .col-12');
@@ -145,7 +145,7 @@ createUserForm.addEventListener('submit', async function(e) {
     });
     createUserStatus.textContent = 'User created successfully!';
     createUserForm.reset();
-    permCheckboxes.forEach(cb => { cb.checked = cb.getAttribute('data-file') === 'documentindex.html'; });
+    permCheckboxes.forEach(cb => { cb.checked = cb.getAttribute('data-file') === 'documentai.html'; });
     loadUsers();
   } catch (err) {
     createUserStatus.textContent = 'Error: ' + (err.message || err);

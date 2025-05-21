@@ -12,12 +12,12 @@ window.currentUserRole = null;
 window.currentUserPermissions = null;
 
 const NAV_LINKS = [
-  { href: 'app.html', label: '🏠 Parsed Menus', roles: ['admin', 'viewer'] },
-  { href: 'debug.html', label: '📝 Debug Raw Texts', roles: ['admin', 'viewer'] },
-  { href: 'documentindex.html', label: '📄 Document AI Menus', roles: ['admin', 'viewer'] },
-  { href: 'debug_documentai.html', label: '🤖 Document AI Debug Raw Texts', roles: ['admin', 'viewer'] },
-  { href: 'hybriduploadmenu.html', label: '🧬 Hybrid Upload Menu', roles: ['admin', 'viewer'] },
-  { href: 'debug_hybrid.html', label: '🧪 Hybrid Debug Raw Texts', roles: ['admin', 'viewer'] },
+  { href: 'visionai.html', label: '🏠 Using Vision AI', roles: ['admin', 'viewer'] },
+  { href: 'visionaiocrtexts.html', label: '📝 Vision AI OCR Texts', roles: ['admin', 'viewer'] },
+  { href: 'documentai.html', label: '📄 Using Document AI', roles: ['admin', 'viewer'] },
+  { href: 'documentaiocrtexts.html', label: '🤖 Document AI OCR Texts', roles: ['admin', 'viewer'] },
+  { href: 'hybridai.html', label: '🧬 Using Hybrid', roles: ['admin', 'viewer'] },
+  { href: 'hybridaiocrtexts.html', label: '🧪 Hybrid OCR Texts', roles: ['admin', 'viewer'] },
   { href: 'admin.html', label: '👤 Admin Panel', roles: ['admin'] }
 ];
 

@@ -1,5 +1,5 @@
 // debug_hybrid.js
-// Handles listing and viewing of hybrid debug raw text files for the Hybrid Debug Raw Texts page.
+// Handles listing and viewing of hybrid debug raw text files for the Hybrid OCR Texts page.
 
 if (!firebase.apps.length) {
   firebase.initializeApp(window.firebaseConfig);

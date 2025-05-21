@@ -1,5 +1,5 @@
 // hybriduploadmenu.js
-// Handles the hybrid menu upload, polling, and display logic for the Hybrid Upload Menu frontend.
+// Handles the hybrid menu upload, polling, and display logic for the Using Hybrid frontend.
 // Uses Firebase for authentication, storage, and Firestore database.
 
 if (!firebase.apps.length) {
@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
-  // Hybrid Menu Preview Modal logic (copied/adapted from documentindex.html)
+  // Hybrid Menu Preview Modal logic (copied/adapted from documentai.html)
   const hybridMenuPreviewModal = document.getElementById('hybridMenuPreviewModal');
   const hybridMenuPreviewContent = document.getElementById('hybridMenuPreviewContent');
   const closeHybridMenuPreview = document.getElementById('closeHybridMenuPreview');

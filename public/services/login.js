@@ -38,9 +38,15 @@ loginForm.addEventListener('submit', function(e) {
         'documentindex.html',
         'debug_documentai.html',
         'hybriduploadmenu.html',
-        'debug_hybrid.html'
+        'debug_hybrid.html',
+        'visionai.html',
+        'visionaiocrtexts.html',
+        'documentai.html',
+        'documentaiocrtexts.html',
+        'hybridai.html',
+        'hybridaiocrtexts.html'
       ];
-      let redirectPage = 'app.html'; // fallback
+      let redirectPage = 'visionai.html'; // fallback
       if (role === 'admin') {
         redirectPage = 'app.html';
       } else if (role === 'viewer' && permissions && typeof permissions === 'object') {

@@ -109,6 +109,156 @@ function splitIntoChunks(text, maxLength = 2000) {
   }
   return chunks;
 }
+/**
+ * Dynamically splits raw OCR text into columns using x-coordinate clustering,
+ * sorts each by y, joins text top-down, and splits into chunks for GPT.
+ *
+ * @param {Array} rawText - Array of OCR elements with text, x, y
+ * @param {number} chunkSize - Max characters per chunk (default 2000)
+ * @returns {Array<string>} Array of chunked text blocks
+ */
+function chunkByColumns(rawText, chunkSize = 2000) {
+  if (!Array.isArray(rawText)) return [];
+
+  // Dynamically determine x threshold (median x)
+  const xValues = rawText.map(e => e.x).sort((a, b) => a - b);
+  const mid = Math.floor(xValues.length / 2);
+  const xThreshold = xValues.length % 2 === 0
+    ? (xValues[mid - 1] + xValues[mid]) / 2
+    : xValues[mid];
+
+  // Split by column
+  const leftCol = rawText.filter(e => e.x < xThreshold);
+  const rightCol = rawText.filter(e => e.x >= xThreshold);
+
+  // Sort each by y
+  leftCol.sort((a, b) => a.y - b.y);
+  rightCol.sort((a, b) => a.y - b.y);
+
+  // Convert to text
+  const textL = leftCol.map(e => e.text).join('\n');
+  const textR = rightCol.map(e => e.text).join('\n');
+
+  // Chunk each
+  const chunks = [];
+  chunks.push(...splitIntoChunks(textL, chunkSize));
+  chunks.push(...splitIntoChunks(textR, chunkSize));
+
+  return chunks;
+}
+
+/**
+ * Merges multiple chunked GPT responses into a single structured menu JSON.
+ * Ensures unique IDs across categories, subcategories, and items.
+ *
+ * @param {Array<Object>} chunkResults - Array of chunk JSONs with { data: { category, sub_category, items } }
+ * @returns {Object} Final unified JSON: { data: { category, sub_category, items } }
+ */
+function mergeChunkedMenuJsons(chunkResults) {
+  const finalData = {
+    category: [],
+    sub_category: [],
+    items: []
+  };
+
+  let catIdCounter = 1;
+  let subCatIdCounter = 1;
+  let itemIdCounter = 1;
+
+  const catMap = new Map();      // Map categoryTitle → catId
+  const subCatMap = new Map();   // Map subCatTitle|catTitle → subCatId
+
+  for (const chunk of chunkResults) {
+    if (!chunk?.data) continue;
+
+    const { category = [], sub_category = [], items = [] } = chunk.data;
+
+    // Merge categories
+    for (const cat of category) {
+      if (!catMap.has(cat.title)) {
+        catMap.set(cat.title, catIdCounter);
+        finalData.category.push({
+          id: catIdCounter,
+          title: cat.title,
+          description: cat.description || ''
+        });
+        catIdCounter++;
+      }
+    }
+
+    // Merge subcategories
+    for (const sub of sub_category) {
+      const origCat = category.find(c => c.id === sub.catId);
+      const catTitle = origCat?.title || 'Food';
+      const uniqueKey = `${sub.title}|${catTitle}`;
+
+      if (!subCatMap.has(uniqueKey)) {
+        const resolvedCatId = catMap.get(catTitle) || 1;
+        subCatMap.set(uniqueKey, subCatIdCounter);
+        finalData.sub_category.push({
+          id: subCatIdCounter,
+          catId: resolvedCatId,
+          title: sub.title,
+          description: sub.description || ''
+        });
+        subCatIdCounter++;
+      }
+    }
+
+    // Merge items
+    for (const item of items) {
+      const sub = sub_category.find(s => s.id === item.subCatId);
+      const cat = category.find(c => c.id === sub?.catId);
+      const subKey = `${sub?.title}|${cat?.title || 'Food'}`;
+      const newSubCatId = subCatMap.get(subKey) || 1;
+
+      finalData.items.push({
+        ...item,
+        itemId: itemIdCounter++,
+        subCatId: newSubCatId,
+        price: parseFloat(item.price || 0).toFixed(2) * 1,
+        description: item.description || '',
+        variantAvailable: item.variantAvailable || 0,
+        variants: item.variantAvailable ? item.variants || [] : [],
+        optionsAvailable: item.optionsAvailable || 0,
+        options: item.optionsAvailable ? item.options || [] : []
+      });
+    }
+  }
+
+  return { menu:[{data: finalData }] };
+}
+
+function mergePricesWithItems(rawText) {
+  const merged = [];
+  const used = new Set();
+
+  for (let i = 0; i < rawText.length; i++) {
+    const item = rawText[i];
+    if (used.has(i)) continue;
+
+    // Look for nearby price to the right
+    const priceLine = rawText.find((e, j) =>
+      !used.has(j) &&
+      Math.abs(e.y - item.y) <= 10 &&
+      e.x > item.x + 100 &&
+      /(\b|^)[€£$₹¥]?\d+(?:[\.,]\d{1,2})?([ ]?[\/\-–][ ]?[€£$₹¥]?\d+(?:[\.,]\d{1,2})?)?(\b|$)/
+.test(e.text)
+    );
+
+    if (priceLine) {
+      merged.push({ ...item, text: `${item.text} ${priceLine.text}` });
+      used.add(i);
+      used.add(rawText.indexOf(priceLine));
+    } else {
+      merged.push(item);
+      used.add(i);
+    }
+  }
+
+  return merged;
+}
+
 
 /**
  * Cloud Function: processMenuUploadDocumentAI
@@ -152,8 +302,8 @@ const processMenuUploadDocumentAI = functions
       let chunks = [];
       if (Array.isArray(rawText)) {
         // If already an array (from OCR), join into a string for chunking
-        const text = rawText.map(lineObj => lineObj.text).join('\n');
-        chunks = splitIntoChunks(text, 2000); // You can adjust 2000 as needed
+        const mergedText = mergePricesWithItems(rawText);
+        chunks = chunkByColumns(mergedText);
       } else {
         // If string, split by column break first, then further chunk if needed
         const colChunks = rawText.split('### COLUMN BREAK ###');
@@ -179,7 +329,7 @@ const processMenuUploadDocumentAI = functions
           console.error('OpenAI extraction failed for chunk:', err);
         }
       }
-      menuJson = { menu: mergedMenu };
+      menuJson = mergeChunkedMenuJsons(mergedMenu);
     } catch (err) {
       console.error('OpenAI extraction failed:', err);
       fs.unlinkSync(tempFilePath);

@@ -2,6 +2,7 @@ You are a menu parser.
 
 Extract structured restaurant menu data from the following text and return valid, clean JSON.
 
+If the same menu item appears under more than one section, include it under each section in the output.
 
 Text:
 """

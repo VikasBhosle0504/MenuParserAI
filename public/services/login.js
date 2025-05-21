@@ -24,8 +24,30 @@ loginForm.addEventListener('submit', function(e) {
   console.log('Password entered:', '"' + password + '"', 'Length:', password.length);
   console.log('Attempting login with:', email, password); // Log credentials for debugging
   firebase.auth().signInWithEmailAndPassword(email, password)
-    .then(() => {
-      window.location.href = 'components/app.html';
+    .then(async () => {
+      // Fetch user permissions from Firestore
+      const user = firebase.auth().currentUser;
+      const db = firebase.firestore();
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      const role = userDoc.exists && userDoc.data().role ? userDoc.data().role : 'viewer';
+      const permissions = userDoc.exists && userDoc.data().permissions ? userDoc.data().permissions : null;
+      // List of possible pages (should match NAV_LINKS in permissions.js)
+      const pages = [
+        'app.html',
+        'debug.html',
+        'documentindex.html',
+        'debug_documentai.html',
+        'hybriduploadmenu.html',
+        'debug_hybrid.html'
+      ];
+      let redirectPage = 'app.html'; // fallback
+      if (role === 'admin') {
+        redirectPage = 'app.html';
+      } else if (role === 'viewer' && permissions && typeof permissions === 'object') {
+        const allowed = pages.find(page => permissions[page] === 1);
+        if (allowed) redirectPage = allowed;
+      }
+      window.location.href = 'components/' + redirectPage;
     })
     .catch(function(error) {
       console.log(error); // Log error for debugging

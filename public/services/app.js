@@ -18,6 +18,26 @@ const menuDetails = document.getElementById('menuDetails');
 const menuJson = document.getElementById('menuJson');
 const closeMenuDetails = document.getElementById('closeMenuDetails');
 
+let currentUserRole = null;
+
+function renderNavLinks(role) {
+  const navLinks = document.getElementById('navLinks');
+  if (!navLinks) return;
+  let links = [
+    { href: 'app.html', label: '🏠 Parsed Menus', roles: ['admin', 'viewer'] },
+    { href: 'debug.html', label: '📝 Debug Raw Texts', roles: ['admin', 'viewer'] },
+    { href: 'documentindex.html', label: '📄 Document AI Menus', roles: ['admin', 'viewer'] },
+    { href: 'debug_documentai.html', label: '🤖 Document AI Debug Raw Texts', roles: ['admin', 'viewer'] },
+    { href: 'hybriduploadmenu.html', label: '🧬 Hybrid Upload Menu', roles: ['admin', 'viewer'] },
+    { href: 'debug_hybrid.html', label: '🧪 Hybrid Debug Raw Texts', roles: ['admin', 'viewer'] },
+    { href: 'admin.html', label: '👤 Admin Panel', roles: ['admin'] }
+  ];
+  navLinks.innerHTML = links
+    .filter(link => link.roles.includes(role))
+    .map(link => `<li><a href="${link.href}" class="nav-link${window.location.pathname.endsWith(link.href) ? ' active' : ''}"><span>${link.label.split(' ')[0]}</span> ${link.label.split(' ').slice(1).join(' ')}</a></li>`)
+    .join('');
+}
+
 function uploadHandler(e) {
   e.preventDefault();
   const file = fileInput.files[0];
@@ -51,8 +71,12 @@ function uploadHandler(e) {
   });
 }
 
-firebase.auth().onAuthStateChanged(function(user) {
+firebase.auth().onAuthStateChanged(async function(user) {
   if (user) {
+    // Fetch user role from Firestore
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    currentUserRole = userDoc.exists && userDoc.data().role ? userDoc.data().role : 'viewer';
+    renderNavLinks(currentUserRole);
     uploadForm.addEventListener('submit', uploadHandler);
     loadMenus();
     setInterval(loadMenus, 30000);

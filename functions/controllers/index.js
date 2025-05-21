@@ -392,9 +392,49 @@ exports.processMenuUploadDocumentAI = processMenuUploadDocumentAI;
  * Cloud Function: createUserDoc
  * Creates a Firestore user document with a default role when a new user is created in Firebase Auth.
  */
-exports.createUserDoc = functions.auth.user().onCreate((user) => {
-  return admin.firestore().collection('users').doc(user.uid).set({
-    email: user.email,
-    role: 'viewer' // default role, change as needed
+exports.createUserDoc = functions.auth.user().onCreate(async (user) => {
+  const userRef = admin.firestore().collection('users').doc(user.uid);
+  const doc = await userRef.get();
+  if (!doc.exists) {
+    return userRef.set({
+      email: user.email,
+      role: 'viewer'
+    });
+  }
+  // If doc exists (created by callable), do nothing
+  return null;
+});
+
+// Callable function for admin to create a user with permissions
+exports.createUserWithPermissions = functions.https.onCall(async (data, context) => {
+  // Only allow admins to call this function
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'You must be logged in as an admin.');
+  }
+  const adminDoc = await admin.firestore().collection('users').doc(context.auth.uid).get();
+  if (!adminDoc.exists || adminDoc.data().role !== 'admin') {
+    throw new functions.https.HttpsError('permission-denied', 'Only admins can create users.');
+  }
+
+  const { email, password, role, permissions } = data;
+  if (!email || !password) {
+    throw new functions.https.HttpsError('invalid-argument', 'Email and password are required.');
+  }
+
+  // Create the user in Firebase Auth
+  let userRecord;
+  try {
+    userRecord = await admin.auth().createUser({ email, password });
+  } catch (err) {
+    throw new functions.https.HttpsError('already-exists', err.message);
+  }
+
+  // Set user doc in Firestore
+  await admin.firestore().collection('users').doc(userRecord.uid).set({
+    email,
+    role: role || 'viewer',
+    permissions: permissions || {}
   });
+
+  return { success: true, uid: userRecord.uid };
 });

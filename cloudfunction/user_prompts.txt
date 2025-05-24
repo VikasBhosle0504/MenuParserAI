@@ -6,5 +6,7 @@ If the same menu item appears under more than one section, include it under each
 
 Text:
 """
-rawchunkdata
-""" 
+{chunk}
+"""
+
+Return only valid JSON, with a single top-level object (starting with {{ and ending with }}), and no extra text, markdown, or code block markers.

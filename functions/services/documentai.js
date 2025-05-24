@@ -14,7 +14,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const {Storage} = require('@google-cloud/storage');
-const vision = require('@google-cloud/vision');
 const pdfParse = require('pdf-parse');
 const xlsx = require('xlsx');
 const mammoth = require('mammoth');
@@ -52,7 +51,7 @@ async function extractMenuJson(rawText) {
   const prompt = userPromptTemplate.replace('{{RAW_TEXT}}', JSON.stringify(rawText, null, 2));
   const sysContent = systemPrompt;
   const response = await openai.createChatCompletion({
-    model: 'gpt-4-turbo',
+    model: 'gpt-4.1-mini',
     messages: [
       {role: 'system', content: sysContent},
       {role: 'user', content: prompt}
@@ -229,36 +228,6 @@ function mergeChunkedMenuJsons(chunkResults) {
   return { menu:[{data: finalData }] };
 }
 
-function mergePricesWithItems(rawText) {
-  const merged = [];
-  const used = new Set();
-
-  for (let i = 0; i < rawText.length; i++) {
-    const item = rawText[i];
-    if (used.has(i)) continue;
-
-    // Look for nearby price to the right
-    const priceLine = rawText.find((e, j) =>
-      !used.has(j) &&
-      Math.abs(e.y - item.y) <= 10 &&
-      e.x > item.x + 100 &&
-      /(\b|^)[€£$₹¥]?\d+(?:[\.,]\d{1,2})?([ ]?[\/\-–][ ]?[€£$₹¥]?\d+(?:[\.,]\d{1,2})?)?(\b|$)/
-.test(e.text)
-    );
-
-    if (priceLine) {
-      merged.push({ ...item, text: `${item.text} ${priceLine.text}` });
-      used.add(i);
-      used.add(rawText.indexOf(priceLine));
-    } else {
-      merged.push(item);
-      used.add(i);
-    }
-  }
-
-  return merged;
-}
-
 
 /**
  * Cloud Function: processMenuUploadDocumentAI
@@ -302,8 +271,8 @@ const processMenuUploadDocumentAI = functions
       let chunks = [];
       if (Array.isArray(rawText)) {
         // If already an array (from OCR), join into a string for chunking
-        const mergedText = mergePricesWithItems(rawText);
-        chunks = chunkByColumns(mergedText);
+       
+        chunks = chunkByColumns(rawText);
       } else {
         // If string, split by column break first, then further chunk if needed
         const colChunks = rawText.split('### COLUMN BREAK ###');

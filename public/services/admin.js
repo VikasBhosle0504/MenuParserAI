@@ -14,7 +14,9 @@ const NAV_LINKS = [
   { href: 'documentai.html', label: '📄 Using Document AI', roles: ['admin', 'viewer'] },
   { href: 'documentaiocrtexts.html', label: '🤖 Document AI OCR Texts', roles: ['admin', 'viewer'] },
   { href: 'hybridai.html', label: '🧬 Using Hybrid', roles: ['admin', 'viewer'] },
-  { href: 'hybridaiocrtexts.html', label: '�� Hybrid OCR Texts', roles: ['admin', 'viewer'] },
+  { href: 'hybridaiocrtexts.html', label: '🧪 Hybrid OCR Texts', roles: ['admin', 'viewer'] },
+  { href: 'langchain.html', label: '🔗 Using LangChain', roles: ['admin', 'viewer'] },
+  { href: 'langchainwithvision.html', label: '🔗 Using LangChain with Vision', roles: ['admin', 'viewer'] },
   { href: 'admin.html', label: '👤 Admin Panel', roles: ['admin'] }
 ];
 

@@ -3,7 +3,7 @@
   "description": "Cloud Functions for Firebase",
   "main": "index.js",
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "@google-cloud/documentai": "^9.1.0",

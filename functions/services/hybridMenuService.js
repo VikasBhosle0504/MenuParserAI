@@ -6,6 +6,7 @@ const os = require('os');
 const fs = require('fs');
 const { extractTextFromFile } = require('../utils/extractTextFromFile');
 const { hybridModeExtractMenu } = require('./hybridResearch');
+const axios = require('axios');
 
 const db = admin.firestore();
 const storage = new Storage();

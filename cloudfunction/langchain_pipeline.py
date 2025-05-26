@@ -29,7 +29,7 @@ prompt = PromptTemplate(
 )
 
 # 2. Define the LLM (no output parser)
-llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.2, max_tokens=4096)
+llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0, top_p=1, max_tokens=4096)
 
 # 3. Define the mapping chain (for each chunk)
 mapping_chain = LLMChain(
